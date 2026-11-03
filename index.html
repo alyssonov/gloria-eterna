@@ -154,7 +154,22 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .placar .pen{font-family:var(--mono);font-size:12px;color:var(--nevoa);font-weight:400}
 .gols-lista{font-family:var(--mono);font-size:12px;color:var(--nevoa);display:flex;flex-wrap:wrap;gap:2px 12px}
 .gols-lista .meu{color:var(--prata)}
-@media (max-width:480px){.jogo{grid-template-columns:1fr}.fase{grid-row:auto}}
+.disputa{grid-column:2;display:grid;gap:6px;margin-top:6px;padding-top:10px;border-top:1px solid var(--borda)}
+.disputa .linha{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px}
+.disputa .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--nevoa)}
+.disputa .linha.eu .nome{color:var(--prata)}
+.disputa .pp{font-family:var(--display);font-weight:900;font-size:20px;line-height:1;min-width:1.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--prata)}
+.bolas{display:flex;gap:4px;flex-wrap:wrap}
+.bolas i{width:14px;height:14px;border-radius:50%;border:1px solid var(--borda);display:inline-grid;place-items:center;font-style:normal;font-size:9px;line-height:1}
+.bolas i.g{background:var(--vitoria);border-color:var(--vitoria)}
+.bolas i.x{border-color:var(--derrota);color:var(--derrota)}
+.bolas i.vez{border-color:var(--ouro);background:color-mix(in srgb,var(--ouro) 35%,transparent);animation:pulsa .7s ease-in-out infinite}
+.narra{font-size:15px;font-weight:600;color:var(--prata);min-height:1.4em}
+.narra small{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--nevoa)}
+.narra.prep{color:var(--ouro)}
+.narra.gol{color:var(--vitoria);animation:surge .3s ease-out}
+.narra.erro{color:var(--derrota);animation:surge .3s ease-out}
+@media (max-width:480px){.jogo{grid-template-columns:1fr}.fase{grid-row:auto}.disputa{grid-column:auto}}
 
 .veredito{border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:10px;
   background:linear-gradient(135deg,#24211d,var(--arquibancada));border:1px solid var(--borda)}
@@ -246,7 +261,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
     </div>
   </div>
 
-  <footer>Elencos resumidos e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis.</footer>
+  <footer>Os elencos trazem os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis.</footer>
 </div>
 
 <script>
@@ -374,7 +389,7 @@ function novoJogo(){
   S.sel=null; S.mover=null;
   S.seed=S.mode==="dia"?hashStr("gloria-"+hoje()):(Math.random()*4294967296)>>>0;
   S.rng=mulberry32(S.seed);
-  $("simulacao").hidden=true; clearTimeout(S.timer); clearInterval(S.relogio);
+  $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
   render();
 }
 const escondido=()=>S.alm&&!S.revelar;
@@ -546,11 +561,26 @@ function minutos(n,rng,prorr){const ms=[];for(let i=0;i<n;i++){
   else{const m=1+Math.floor(rng()*93);ms.push(m>90?"90+"+(m-90):String(m));}}return ms;}
 function ordMin(s){const [a,b]=s.split("+");return +a+(b?+b/100:0);}
 function addGols(lista,n,time,rng,prorr){minutos(n,rng,prorr).forEach(m=>lista.push({m,quem:marcador(time.players,rng),meu:time.eu}));}
+// Ordem de cobrança: os cinco melhores de linha (o craque bate a quinta), depois o resto e o goleiro por último.
+function batedores(t){
+  const peso={A:3,M:2,D:0};
+  const linha=t.players.filter(p=>p.pos!=="G").sort((x,y)=>(peso[y.pos]+y.r/10)-(peso[x.pos]+x.r/10));
+  const top=linha.slice(0,5);
+  return [...top.slice(1),top[0],...linha.slice(5),...t.players.filter(p=>p.pos==="G")].filter(Boolean);
+}
+// Cobranças alternadas; a disputa acaba assim que um lado não consegue mais alcançar o outro.
 function penaltis(A,B,rng){
   const pA=.77-((B.gk||80)-80)*.004, pB=.77-((A.gk||80)-80)*.004;
-  let a=0,b=0;for(let i=0;i<5;i++){if(rng()<pA)a++;if(rng()<pB)b++;}
-  while(a===b){if(rng()<pA)a++;if(rng()<pB)b++;}
-  return [a,b];
+  const la=batedores(A), lb=batedores(B), cobr=[];
+  let a=0,b=0,ka=0,kb=0;
+  const bateA=()=>{const g=rng()<pA;if(g)a++;cobr.push({eu:!!A.eu,time:A.nome,quem:la[ka++%la.length].name,gol:g});};
+  const bateB=()=>{const g=rng()<pB;if(g)b++;cobr.push({eu:!!B.eu,time:B.nome,quem:lb[kb++%lb.length].name,gol:g});};
+  for(let i=0;i<5;i++){
+    bateA(); if(a>b+(5-i)||b>a+(4-i))break;
+    bateB(); if(a>b+(4-i)||b>a+(4-i))break;
+  }
+  if(a===b)while(a===b){bateA();bateB();}
+  const r=[a,b]; r.cobr=cobr; return r;
 }
 function jogar(A,B,rng,mando,final){
   let ga=poisson(lambda(A,B,mando),rng), gb=poisson(lambda(B,A,-mando),rng);
@@ -623,24 +653,47 @@ function simular(){
 
 function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":"e";}
 // min definido = jogo em andamento até aquele minuto
-function htmlJogo(j,me,id,min,novo){
-  const vivo=min!==undefined;
+// disp = disputa de pênaltis em andamento: {k: cobranças já mostradas, prep: a cobrança k está sendo preparada}
+function htmlJogo(j,me,id,min,novo,disp){
+  const vivo=min!==undefined, penVivo=!!disp;
   const gs=vivo?j.gols.filter(g=>ordMin(g.m)<min+1):j.gols;
   const ga=vivo?gs.filter(g=>g.meu).length:j.ga, gb=vivo?gs.filter(g=>!g.meu).length:j.gb;
   const local={casa:"em casa",fora:"fora de casa",neutro:"campo neutro"}[j.local];
   let estado;
   if(vivo)estado=`<span class="relogio">${min>90&&!j.prorr?"90'":min+"'"}${min>90&&j.prorr?" prorrogação":""}</span>`;
+  else if(penVivo)estado=`<span class="relogio">Pênaltis</span>`;
   else{const r=resJogo(j);estado=`<span class="res ${r}">${{v:"Vitória",e:"Empate",d:"Derrota"}[r]}</span>`;}
   const notas=[];
   if(!vivo){
     if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
     if(j.prorr)notas.push("com prorrogação");
-    if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
-    if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
+    if(!penVivo){
+      if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+      if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
+    }
   }
-  return `<div class="jogo${novo?"":" fixo"}${vivo?" vivo":""}" id="${id}"><div class="fase">${j.fase}<br>${local}<br>${estado}</div>
+  const pen=!vivo&&j.pen&&j.pen.cobr?htmlPen(j,me,penVivo?disp.k:j.pen.cobr.length,penVivo&&disp.prep):"";
+  return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase}<br>${local}<br>${estado}</div>
   <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${ga} × ${gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
-  <div class="gols-lista">${gs.length?gs.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):`<span>${vivo?"Bola rolando":"Sem gols"}</span>`}</div></div>`;
+  <div class="gols-lista">${gs.length?gs.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):`<span>${vivo?"Bola rolando":"Sem gols"}</span>`}</div>${pen}</div>`;
+}
+const FRASE_GOL=["Bateu firme no canto.","Deslocou o goleiro.","No ângulo, sem chance.","Rasteira, no cantinho.","Forte, no meio do gol."];
+const FRASE_ERRO=["O goleiro defendeu!","Na trave!","Isolou, por cima do gol!","Pra fora!","Defesaça do goleiro!"];
+function htmlPen(j,me,k,prep){
+  const c=j.pen.cobr, vis=c.slice(0,k), vez=prep?c[k]:null;
+  const linha=eu=>{
+    const meus=vis.filter(x=>x.eu===eu), n=meus.filter(x=>x.gol).length;
+    const total=Math.max(5,meus.length+(vez&&vez.eu===eu?1:0));
+    let b="";for(let i=0;i<total;i++){const x=meus[i];
+      b+=x?(x.gol?`<i class="g" title="Gol de ${esc(x.quem)}"></i>`:`<i class="x" title="${esc(x.quem)} perdeu">✕</i>`):(vez&&vez.eu===eu&&i===meus.length?`<i class="vez"></i>`:`<i></i>`);}
+    return `<div class="linha${eu?" eu":""}"><span class="nome">${esc(eu?me.nome:j.adv.nome)}</span><span class="bolas">${b}</span><span class="pp">${n}</span></div>`;
+  };
+  let narra;
+  if(vez)narra=`<div class="narra prep">${esc(vez.quem)} ajeita a bola… <small>${esc(vez.time)}</small></div>`;
+  else if(k<c.length||!k){const u=c[k-1];narra=u?`<div class="narra ${u.gol?"gol":"erro"}">${u.gol?`GOL de ${esc(u.quem)}! ${FRASE_GOL[k%FRASE_GOL.length]}`:`${esc(u.quem)} perdeu! ${FRASE_ERRO[k%FRASE_ERRO.length]}`}</div>`:`<div class="narra">Disputa de pênaltis</div>`;}
+  else{const ganhou=j.pen[0]>j.pen[1], u=c[k-1];
+    narra=`<div class="narra ${ganhou?"gol":"erro"}">${u.gol?`GOL de ${esc(u.quem)}!`:`${esc(u.quem)} perdeu!`} ${esc(ganhou?me.nome:j.adv.nome)} vence nos pênaltis por ${Math.max(...j.pen)} a ${Math.min(...j.pen)}.</div>`;}
+  return `<div class="disputa">${linha(true)}${linha(false)}${narra}</div>`;
 }
 function htmlTabela(t){
   return `<p class="rotulo">Fase de grupos · turno e returno · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
@@ -668,7 +721,7 @@ function htmlVeredito(sim){
 
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
 function mostrar(sim){
-  clearInterval(S.relogio);
+  clearInterval(S.relogio); clearTimeout(S.timerPen);
   S.sim=sim; S.k=0; S.atual=null;
   $("simulacao").hidden=false; $("veredito").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
   $("btnProximo").hidden=false; $("btnPular").hidden=false;
@@ -689,27 +742,49 @@ function comecarJogo(){
     const el=$(id); if(el)el.outerHTML=htmlJogo(p.jogo,S.sim.me,id,min,false);
   },dur/ultimo);
 }
-function apito(){
+// Apito final. Se o jogo vai para os pênaltis, a disputa começa aqui (a não ser que seja instantâneo).
+function apito(instantaneo){
   clearInterval(S.relogio);
-  const a=S.atual; if(!a||a.fim)return; a.fim=true;
+  const a=S.atual; if(!a||a.fim)return;
+  const dur=+$("velocidade").value, j=a.p.jogo;
+  if(j.pen&&j.pen.cobr&&!instantaneo&&!reduz&&dur&&!a.penando){disputa(a,dur);return;}
+  encerra(a);
+}
+function encerra(a){
+  clearTimeout(S.timerPen); a.fim=true; a.penando=false;
   const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false);
   if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
   controles();
 }
+function disputa(a,dur){
+  a.penando=true; controles();
+  const c=a.p.jogo.pen.cobr, prep=Math.round(600+dur*.1), mostra=Math.round(400+dur*.04);
+  let k=0;
+  const desenha=p=>{const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false,{k,prep:p});};
+  const passo=()=>{
+    if(k>=c.length){encerra(a);return;}
+    desenha(true);
+    S.timerPen=setTimeout(()=>{k++;desenha(false);S.timerPen=setTimeout(passo,k>=c.length?mostra*2:mostra);},prep);
+  };
+  desenha(false);
+  S.timerPen=setTimeout(passo,mostra);
+}
 function controles(){
   const a=S.atual, ultimo=S.k>=S.sim.passos.length;
   const bp=$("btnProximo");
-  if(a&&!a.fim)bp.textContent="Ir para o apito final";
+  if(a&&a.penando)bp.textContent="Pular pênaltis";
+  else if(a&&!a.fim)bp.textContent="Ir para o apito final";
   else bp.textContent=ultimo?"Ver resultado final":"Próximo jogo";
 }
 function proximo(){
   const a=S.atual;
+  if(a&&a.penando){encerra(a);return;}
   if(a&&!a.fim){apito();return;}
   if(S.k>=S.sim.passos.length){fimCopa();return;}
   comecarJogo();
 }
 function simularResto(){
-  apito();
+  apito(true);
   while(S.k<S.sim.passos.length){
     const p=S.sim.passos[S.k]; const id="jogo"+S.k; S.k++;
     $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
