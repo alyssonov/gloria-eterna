@@ -107,6 +107,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.principal{background:var(--ouro);border-color:var(--ouro);color:#0a0a0a;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:.04em;padding:10px 22px}
 .btn.principal:hover:not(:disabled){background:#bba26e}
+@media (max-width:860px){#btnRecomecar{margin-left:auto;align-self:flex-end}}
 .dica{color:var(--nevoa);font-size:13px;margin:0}
 
 /* Elenco sorteado */
@@ -561,7 +562,7 @@ function render(){
     <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${c.c} · campeão da Libertadores</div></div></div>
     ${algum?`<p class="dica">Escolha um jogador e depois a vaga no campo.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas, nem mudando alguém de posição. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
-      const motivo=S.used.has(p.name)?"já escalado":(!ok?"sem vaga":(alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"vaga livre"));
+      const motivo=S.used.has(p.name)?"já escalado":(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
       return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${escondido()?"··":p.r}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
@@ -586,7 +587,8 @@ function marcador(players,rng,fora){
   const ps=fora?players.filter(p=>!fora.has(p.name)):players;
   return sorteiaPeso(ps,p=>({G:0,D:.6,M:2.5,A:5}[p.pos])*Math.pow(p.r/80,3),rng).name;
 }
-function melhorBatedor(op){return [...op].sort((a,b)=>b.r-a.r)[0];}
+// O goleiro só bate se você escolher: a simulação e os adversários usam o melhor jogador de linha.
+function melhorBatedor(op){return op.filter(p=>p.pos!=="G").sort((a,b)=>b.r-a.r)[0]||op[0];}
 // Ordem de cobrança: os cinco melhores de linha (o craque bate a quinta), depois o resto e o goleiro por último. Expulsos não batem.
 function batedores(t,fora){
   const peso={A:3,M:2,D:0}, ps=t.players.filter(p=>!fora||!fora.has(p.name));
@@ -632,7 +634,7 @@ function jogar(A,B,rng,mando,final){
   ["a","b"].forEach(l=>{
     if(rng()>=CHANCE_PENALTI)return;
     const X=lados[l], Y=lados[outro[l]], m=entre(1,90,rng), u=rng(), fx=fora(l,m);
-    const opcoes=X.players.filter(p=>p.pos!=="G"&&!(fx&&fx.has(p.name))).sort((a,b)=>b.r-a.r);
+    const opcoes=X.players.filter(p=>!(fx&&fx.has(p.name))).sort((a,b)=>b.r-a.r);
     const pen={m,u,lado:l,gk:Y.gk||80,opcoes,meu:!!X.eu};
     if(X.eu)r.pendente=pen; else cobrar(r,pen,melhorBatedor(opcoes));
   });
@@ -864,6 +866,7 @@ function comecarJogo(){
   rodar();
 }
 const pendente=a=>a.p.jogo.pendente&&!a.p.resolvido;
+const cobrando=a=>a&&a.batedor&&pendente(a);
 const desenhaVivo=(a,extra)=>{const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,a.min,false,null,extra);};
 // Relógio do jogo. Para no minuto do pênalti do seu time para você escolher o batedor.
 function rodar(){
@@ -877,6 +880,7 @@ function rodar(){
     desenhaVivo(a);
   },dur/VEL_MIN);
 }
+const SUSPENSE_BOLA=1500, SUSPENSE_CORRIDA=1200;
 function pedirBatedor(){
   const a=S.atual; a.escolhendo=true;
   desenhaVivo(a,htmlEscolha(a.p.jogo,S.sim.me));
@@ -885,12 +889,20 @@ function pedirBatedor(){
 }
 function escolherBatedor(i){
   const a=S.atual; if(!a||!a.escolhendo)return;
-  const j=a.p.jogo; a.escolhendo=false;
-  a.p.resolver(j.pendente.opcoes[i]);
-  desenhaVivo(a,htmlCobranca(j));
-  controles();
-  const dur=+$("velocidade").value;
-  S.timerPen=setTimeout(()=>{if(S.atual!==a||a.fim)return; if(reduz||!dur)apito(); else rodar();},reduz||!dur?900:Math.round(900+dur*.1));
+  const j=a.p.jogo, q=j.pendente.opcoes[i]; a.escolhendo=false; a.batedor=q;
+  // O resultado só é decidido no fim do suspense, para o placar não entregar a cobrança antes da hora.
+  const narra=t=>desenhaVivo(a,`<div class="disputa"><div class="narra prep">${esc(q.name)} ${t}</div></div>`);
+  narra("ajeita a bola…"); controles();
+  S.timerPen=setTimeout(()=>{
+    narra("corre para a bola…");
+    S.timerPen=setTimeout(()=>{
+      a.p.resolver(q);
+      desenhaVivo(a,htmlCobranca(j));
+      controles();
+      const dur=+$("velocidade").value;
+      S.timerPen=setTimeout(()=>{if(S.atual!==a||a.fim)return; if(reduz||!dur)apito(); else rodar();},reduz||!dur?900:Math.round(900+dur*.1));
+    },SUSPENSE_CORRIDA);
+  },SUSPENSE_BOLA);
 }
 // Apito final. Se o jogo vai para os pênaltis, a disputa começa aqui (a não ser que seja instantâneo).
 function apito(instantaneo){
@@ -898,7 +910,7 @@ function apito(instantaneo){
   const a=S.atual; if(!a||a.fim)return;
   const dur=+$("velocidade").value, j=a.p.jogo;
   if(pendente(a)){
-    if(instantaneo){a.escolhendo=false;a.p.resolver();}
+    if(instantaneo){a.escolhendo=false;a.p.resolver(a.batedor);}
     else{a.min=j.pendente.m;pedirBatedor();return;}
   }
   if(j.pen&&j.pen.cobr&&!instantaneo&&!reduz&&dur&&!a.penando){disputa(a,dur);return;}
@@ -925,15 +937,16 @@ function disputa(a,dur){
 }
 function controles(){
   const a=S.atual, bp=$("btnProximo");
-  bp.disabled=!!(a&&a.escolhendo);
+  bp.disabled=!!(a&&(a.escolhendo||cobrando(a)));
   if(a&&a.escolhendo)bp.textContent="Escolha o batedor";
+  else if(cobrando(a))bp.textContent="Cobrança em andamento";
   else if(a&&a.penando)bp.textContent="Pular pênaltis";
   else if(a&&!a.fim)bp.textContent="Ir para o apito final";
   else bp.textContent=a&&a.p.ultimo?"Ver resultado final":"Próximo jogo";
 }
 function proximo(){
   const a=S.atual;
-  if(a&&a.escolhendo)return;
+  if(a&&(a.escolhendo||cobrando(a)))return;
   if(a&&a.penando){encerra(a);return;}
   if(a&&!a.fim){apito();return;}
   if(a&&a.p.ultimo){fimCopa();return;}
