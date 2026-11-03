@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Sorteie campeões da Libertadores, escale 11 jogadores e dispute a Copa atrás do 7 a 0.">
+<meta name="description" content="Sorteie campeões da Libertadores, escale 11 jogadores e dispute a Copa no formato atual.">
 <style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 <title>Glória Eterna</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,7 +145,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .veredito h3{font-family:var(--display);font-weight:900;font-size:clamp(40px,7vw,72px);line-height:.9;text-transform:uppercase;margin:0;text-wrap:balance}
 .veredito.ouro h3{color:var(--ouro)}
 .veredito p{margin:0;max-width:60ch}
-.campanha{display:flex;gap:4px}
+.campanha{display:flex;flex-wrap:wrap;gap:4px}
 .campanha span{width:26px;height:26px;display:grid;place-items:center;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:500}
 .campanha .v{background:var(--vitoria);color:#0b2a17}.campanha .e{background:var(--empate);color:#1b1e2c}.campanha .d{background:var(--derrota);color:#3a0d08}
 
@@ -159,7 +159,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
   <header>
     <div class="marca">
       <h1>Glória <span>Eterna</span></h1>
-      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa: são 7 jogos. Ganhar todos sem sofrer gol é o 7 a 0.</p>
+      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos sem sofrer gol é a campanha perfeita.</p>
     </div>
     <div class="ajustes">
       <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" value="Esquadrão da Glória"></div>
@@ -182,6 +182,8 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
       <div class="forca" id="forca"></div>
       <div class="acoes">
         <button class="btn principal" id="btnSimular" disabled>Disputar a Libertadores</button>
+        <div class="campo"><label for="velocidade">Velocidade</label>
+          <select id="velocidade"><option value="1800">Lenta</option><option value="900" selected>Normal</option><option value="300">Rápida</option><option value="0">Instantânea</option></select></div>
         <button class="btn" id="btnRecomecar">Recomeçar</button>
       </div>
     </section>
@@ -206,7 +208,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
     <div class="jogos" id="jogos"></div>
   </section>
 
-  <footer>Elencos resumidos e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores.</footer>
+  <footer>Elencos resumidos e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis.</footer>
 </div>
 
 <script>
@@ -343,14 +345,26 @@ function forcaTime(players){
   const by={G:[],D:[],M:[],A:[]}; players.forEach(p=>by[p.pos].push(p.r));
   const all=players.map(p=>p.r); const avgAll=all.reduce((a,b)=>a+b,0)/all.length;
   const m=k=>by[k].length?by[k].reduce((a,b)=>a+b,0)/by[k].length:avgAll-3;
-  return {att:0.55*m("A")+0.35*m("M")+0.10*m("D"), def:0.45*m("D")+0.30*m("G")+0.25*m("M"), ovr:avgAll};
+  return {att:0.55*m("A")+0.35*m("M")+0.10*m("D"), def:0.45*m("D")+0.30*m("G")+0.25*m("M"), ovr:avgAll, gk:m("G")};
 }
 function minhaForca(){
   const ps=S.slots.filter(s=>s.player).map(s=>s.player); if(!ps.length)return null;
   const f=forcaTime(ps);
-  if(S.style==="of"){f.att+=3;f.def-=3;} else if(S.style==="def"){f.att-=3;f.def+=3;}
-  if(S.formation==="4-3-3")f.att+=1; else if(S.formation==="3-5-2"){f.att+=.5;f.def-=.5;}
+  f.ent=entrosamento(ps);
+  const pen=(1-f.ent)*4; f.att-=pen; f.def-=pen;
+  if(S.style==="of"){f.att+=2;f.def-=2.5;} else if(S.style==="def"){f.att-=2.5;f.def+=2;}
+  if(S.formation==="4-3-3")f.att+=.5; else if(S.formation==="3-5-2"){f.att+=.5;f.def-=.5;}
   return f;
+}
+// 0 a 1: pares do mesmo clube e ano valem mais; mesmo clube em outro ano, menos; mesma década, pouco.
+function entrosamento(ps){
+  let s=0;
+  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
+    const a=ps[i],b=ps[j];
+    if(a.club===b.club)s+=a.y===b.y?1:.6;
+    else if(Math.floor(a.y/10)===Math.floor(b.y/10))s+=.2;
+  }
+  return Math.min(1,s/10);
 }
 
 function render(){
@@ -373,7 +387,7 @@ function render(){
   S.ultimo=-1;
   $("contador").textContent=S.picks+"/11";
   const f=minhaForca();
-  $("forca").innerHTML=f&&!S.alm?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span>`
+  $("forca").innerHTML=f&&!S.alm?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
      :(S.alm?`<span>Modo almanaque: força escondida até o fim da Copa.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
   $("btnSimular").disabled=!completo();
   // base
@@ -409,21 +423,36 @@ function render(){
 
 // ---------- Simulação ----------
 function poisson(l,rng){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=rng();}while(p>L);return k-1;}
-function lambda(a,d){return 1.3*Math.exp((a.att-d.def)/11);}
+// Gols esperados: a diferença de força pesa bastante (divisor 7) e o mando de campo conta.
+function lambda(a,d,mando){return 1.15*Math.exp((a.att-d.def)/7)*(mando===1?1.18:mando===-1?0.86:1);}
 function marcador(players,rng){
   const w=players.map(p=>({p,w:({G:0,D:.6,M:2.5,A:5}[p.pos])*Math.pow(p.r/80,3)}));
   let t=w.reduce((s,x)=>s+x.w,0)*rng();for(const x of w){t-=x.w;if(t<=0)return x.p.name;}return w[w.length-1].p.name;
 }
-function minutos(n,rng){const ms=[];for(let i=0;i<n;i++){let m=1+Math.floor(rng()*93);ms.push(m>90?"90+"+(m-90):String(m));}return ms;}
-function jogar(A,B,rng,matamata){
-  const ga=poisson(lambda(A,B),rng), gb=poisson(lambda(B,A),rng);
-  const gols=[];
-  minutos(ga,rng).forEach(m=>gols.push({m,quem:marcador(A.players,rng),meu:A.eu}));
-  minutos(gb,rng).forEach(m=>gols.push({m,quem:marcador(B.players,rng),meu:B.eu}));
-  gols.sort((x,y)=>parseFloat(x.m.replace("+","."))-parseFloat(y.m.replace("+",".")));
-  let pen=null;
-  if(matamata&&ga===gb){let a=0,b=0;for(let i=0;i<5;i++){if(rng()<.76)a++;if(rng()<.76)b++;}while(a===b){if(rng()<.76)a++;if(rng()<.76)b++;}pen=[a,b];}
-  return {ga,gb,gols,pen};
+function minutos(n,rng,prorr){const ms=[];for(let i=0;i<n;i++){
+  if(prorr){const m=91+Math.floor(rng()*32);ms.push(m>120?"120+"+(m-120):String(m));}
+  else{const m=1+Math.floor(rng()*93);ms.push(m>90?"90+"+(m-90):String(m));}}return ms;}
+function ordMin(s){const [a,b]=s.split("+");return +a+(b?+b/100:0);}
+function addGols(lista,n,time,rng,prorr){minutos(n,rng,prorr).forEach(m=>lista.push({m,quem:marcador(time.players,rng),meu:time.eu}));}
+function penaltis(A,B,rng){
+  const pA=.77-((B.gk||80)-80)*.004, pB=.77-((A.gk||80)-80)*.004;
+  let a=0,b=0;for(let i=0;i<5;i++){if(rng()<pA)a++;if(rng()<pB)b++;}
+  while(a===b){if(rng()<pA)a++;if(rng()<pB)b++;}
+  return [a,b];
+}
+// mando: 1 = A joga em casa, 0 = campo neutro. final: prorrogação e pênaltis se empatar.
+function jogar(A,B,rng,mando,final){
+  let ga=poisson(lambda(A,B,mando),rng), gb=poisson(lambda(B,A,-mando),rng);
+  const gols=[]; addGols(gols,ga,A,rng); addGols(gols,gb,B,rng);
+  let prorr=false,pen=null;
+  if(final&&ga===gb){
+    prorr=true;
+    const xa=poisson(lambda(A,B,0)/3,rng), xb=poisson(lambda(B,A,0)/3,rng);
+    addGols(gols,xa,A,rng,true); addGols(gols,xb,B,rng,true); ga+=xa; gb+=xb;
+    if(ga===gb)pen=penaltis(A,B,rng);
+  }
+  gols.sort((x,y)=>ordMin(x.m)-ordMin(y.m));
+  return {ga,gb,gols,prorr,pen};
 }
 
 function simular(){
@@ -431,44 +460,72 @@ function simular(){
   const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name).join(",")+S.style):(Math.random()*4294967296)>>>0;
   const rng=mulberry32(seedSim);
   const pool=CHAMPS.map(c=>({eu:false,nome:`${c.t} ${c.y}`,players:c.players,...forcaTime(c.players)})).sort((a,b)=>a.ovr-b.ovr);
-  const usados=new Set();
-  const adv=(lo,hi)=>{const a=Math.floor(lo*pool.length),b=Math.floor(hi*pool.length);const c=pool.slice(a,b).filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);return t;};
-  const grupo=[me,adv(0,.75),adv(0,.75),adv(0,.75)];
+  // Não enfrenta os campeões de onde saíram seus jogadores.
+  const usados=new Set(me.players.map(p=>`${p.club} ${p.y}`));
+  const adv=(lo,hi)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
+    if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);return t;};
+  // Potes: um rival forte, um médio e um mais fraco.
+  const grupo=[me,adv(.6,1),adv(.3,.7),adv(0,.4)];
   const tab=new Map(grupo.map(t=>[t,{t,j:0,v:0,e:0,d:0,gp:0,gc:0}]));
   const reg=(A,B,r)=>{const a=tab.get(A),b=tab.get(B);a.j++;b.j++;a.gp+=r.ga;a.gc+=r.gb;b.gp+=r.gb;b.gc+=r.ga;
     if(r.ga>r.gb){a.v++;b.d++;}else if(r.ga<r.gb){b.v++;a.d++;}else{a.e++;b.e++;}};
   const ordenar=()=>[...tab.values()].map(x=>({...x,pts:x.v*3+x.e,sg:x.gp-x.gc})).sort((a,b)=>b.pts-a.pts||b.sg-a.sg||b.gp-a.gp||(a.t.eu?-1:b.t.eu?1:0));
-  const rodadas=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+  // Turno e returno: o primeiro de cada par é o mandante.
+  const cal=[[[0,1],[2,3]],[[2,0],[3,1]],[[0,3],[1,2]],[[1,0],[3,2]],[[0,2],[1,3]],[[3,0],[2,1]]];
   const passos=[];
-  rodadas.forEach((rd,k)=>{
-    let meuJogo=null;
-    rd.forEach(([x,y])=>{const r=jogar(grupo[x],grupo[y],rng,false);reg(grupo[x],grupo[y],r);if(x===0)meuJogo={fase:`Grupo · ${k+1}ª rodada`,adv:grupo[y],...r};});
-    passos.push({jogo:meuJogo,tabela:ordenar()});
+  cal.forEach((rd,k)=>{
+    let meu=null;
+    rd.forEach(([h,a])=>{
+      const r=jogar(grupo[h],grupo[a],rng,1,false); reg(grupo[h],grupo[a],r);
+      if(h===0)meu={fase:`Grupos · ${k+1}ª rodada`,local:"casa",adv:grupo[a],ga:r.ga,gb:r.gb,gols:r.gols};
+      else if(a===0)meu={fase:`Grupos · ${k+1}ª rodada`,local:"fora",adv:grupo[h],ga:r.gb,gb:r.ga,gols:r.gols};
+    });
+    passos.push({jogo:meu,tabela:ordenar()});
   });
   const fin=ordenar(); const pos=fin.findIndex(x=>x.t.eu);
   let fimFase=null;
   if(pos>1) fimFase="Eliminado na fase de grupos";
   else{
-    const fases=[["Oitavas de final",.2,.8],["Quartas de final",.4,1],["Semifinal",.6,1],["Final",.75,1]];
-    for(const [nome,lo,hi] of fases){
-      const o=adv(lo,hi); const r=jogar(me,o,rng,true);
-      passos.push({jogo:{fase:nome,adv:o,...r}});
-      const venceu=r.ga>r.gb||(r.pen&&r.pen[0]>r.pen[1]);
-      if(!venceu){fimFase={"Oitavas de final":"Eliminado nas oitavas","Quartas de final":"Eliminado nas quartas","Semifinal":"Eliminado na semifinal","Final":"Vice-campeão"}[nome];break;}
+    const voltaEmCasa=pos===0; // líder do grupo decide em casa
+    const fases=[["Oitavas","Eliminado nas oitavas",.3,1],["Quartas","Eliminado nas quartas",.45,1],["Semifinal","Eliminado na semifinal",.6,1]];
+    for(const [nome,fora,lo,hi] of fases){
+      const o=adv(lo,hi);
+      const ida=voltaEmCasa?jogar(o,me,rng,1,false):jogar(me,o,rng,1,false);
+      const im=voltaEmCasa?{ga:ida.gb,gb:ida.ga}:{ga:ida.ga,gb:ida.gb};
+      passos.push({jogo:{fase:`${nome} · ida`,local:voltaEmCasa?"fora":"casa",adv:o,...im,gols:ida.gols}});
+      const volta=voltaEmCasa?jogar(me,o,rng,1,false):jogar(o,me,rng,1,false);
+      const vm=voltaEmCasa?{ga:volta.ga,gb:volta.gb}:{ga:volta.gb,gb:volta.ga};
+      const agg=[im.ga+vm.ga,im.gb+vm.gb];
+      const pen=agg[0]===agg[1]?penaltis(me,o,rng):null;
+      const passou=agg[0]>agg[1]||!!(pen&&pen[0]>pen[1]);
+      passos.push({jogo:{fase:`${nome} · volta`,local:voltaEmCasa?"casa":"fora",adv:o,...vm,gols:volta.gols,agg,pen,passou}});
+      if(!passou){fimFase=fora;break;}
+    }
+    if(!fimFase){
+      const o=adv(.7,1); const r=jogar(me,o,rng,0,true);
+      const passou=r.ga>r.gb||!!(r.pen&&r.pen[0]>r.pen[1]);
+      passos.push({jogo:{fase:"Final · jogo único",local:"neutro",adv:o,...r,final:true,passou}});
+      if(!passou)fimFase="Vice-campeão";
     }
   }
   return {me,passos,fimFase};
 }
 
-function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":(j.pen?(j.pen[0]>j.pen[1]?"v":"d"):"e");}
+function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":"e";}
 function htmlJogo(j,me){
-  const r=resJogo(j); const rot={v:"Vitória",e:"Empate",d:"Derrota"}[r]+(j.pen?" nos pênaltis":"");
-  return `<div class="jogo"><div class="fase">${j.fase}<br><span class="res ${r}">${rot}</span></div>
-  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${j.ga} × ${j.gb}</span><span>${esc(j.adv.nome)}</span>${j.pen?`<span class="pen">pên. ${j.pen[0]}–${j.pen[1]}</span>`:""}</div>
+  const r=resJogo(j); const rot={v:"Vitória",e:"Empate",d:"Derrota"}[r];
+  const local={casa:"em casa",fora:"fora de casa",neutro:"campo neutro"}[j.local];
+  const notas=[];
+  if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
+  if(j.prorr)notas.push("com prorrogação");
+  if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+  if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
+  return `<div class="jogo"><div class="fase">${j.fase}<br>${local}<br><span class="res ${r}">${rot}</span></div>
+  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${j.ga} × ${j.gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
   <div class="gols-lista">${j.gols.length?j.gols.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):"<span>Sem gols</span>"}</div></div>`;
 }
 function htmlTabela(t){
-  return `<p class="rotulo">Grupo · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
+  return `<p class="rotulo">Fase de grupos · turno e returno · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
     t.map((x,i)=>`<tr class="${x.t.eu?"eu":""} ${i<2?"classifica":""}"><td>${i+1}</td><td>${esc(x.t.nome)}</td><td>${x.pts}</td><td>${x.j}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp}</td><td>${x.gc}</td><td>${x.sg>0?"+":""}${x.sg}</td></tr>`).join("")}</tbody></table>`;
 }
 function htmlVeredito(sim){
@@ -478,16 +535,16 @@ function htmlVeredito(sim){
   const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
   const campeao=!sim.fimFase; const vitorias=res.filter(r=>r==="v").length;
   const setezero=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
-  const invicto=campeao&&!res.includes("d")&&js.every(j=>!j.pen);
+  const invicto=campeao&&!res.includes("d");
   let titulo,texto;
-  if(setezero){titulo="7 a 0";texto=`Sete vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
+  if(setezero){titulo="Campanha perfeita";texto=`13 vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
   else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo. Faltou só fechar o gol: ${gc} sofrido${gc===1?"":"s"}.`;}
   else if(campeao){titulo="Campeão da Libertadores";texto=`${esc(sim.me.nome)} levanta a taça, mas com sustos pelo caminho.`;}
   else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"A Copa acabou cedo. Sorteie de novo e monte outro time.";}
   const f=sim.me;
   return `<div class="veredito ${setezero||campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
-    <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span></div>
+    <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span></div>
     <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCopiar">Copiar resultado</button></div></div>`;
 }
 
@@ -503,7 +560,7 @@ function mostrar(sim){
     $("btnMesmo").onclick=()=>mostrar(simular());
     $("btnCopiar").onclick=async()=>{
       const js=sim.passos.map(p=>p.jogo);
-      const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
+      const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.agg?` (agregado ${j.agg[0]}–${j.agg[1]})`:""}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
       try{await navigator.clipboard.writeText(txt);$("btnCopiar").textContent="Copiado";}catch(e){$("btnCopiar").textContent="Não deu para copiar";}
     };
   };
@@ -512,11 +569,11 @@ function mostrar(sim){
     $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));
     if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
     k++;
-    if(k<sim.passos.length)S.timer=setTimeout(passo,reduz?0:900); else fim();
+    if(k<sim.passos.length)S.timer=setTimeout(passo,reduz?0:+$("velocidade").value); else fim();
   };
   $("btnPular").disabled=false;
   $("btnPular").onclick=()=>{clearTimeout(S.timer);while(k<sim.passos.length){const p=sim.passos[k];$("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);k++;}fim();};
-  passo();
+  if(reduz||$("velocidade").value==="0")$("btnPular").onclick(); else passo();
 }
 
 $("btnRolar").onclick=()=>sortear(false);
