@@ -67,7 +67,19 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .gramado .linhas::after{content:"";position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.35);border-radius:50%}
 .area{position:absolute;left:25%;width:50%;height:14%;border:2px solid rgba(255,255,255,.35);pointer-events:none}
 .area.cima{top:4%;border-top:none}.area.baixo{bottom:4%;border-bottom:none}
-.vaga{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;width:96px;text-align:center}
+.vaga{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;width:96px;text-align:center;
+  background:none;border:0;padding:0;color:inherit;font:inherit}
+.vaga:disabled{cursor:default}
+.vaga.alvo{z-index:2}
+.vaga.alvo .bola{border:2px solid var(--ouro);box-shadow:0 0 0 4px rgba(233,185,73,.45);animation:pulsa 1.1s ease-in-out infinite}
+.vaga.alvo:not(.cheia) .bola{background:rgba(233,185,73,.3)}
+.vaga.movendo .bola{box-shadow:0 0 0 4px #fff}
+.vaga.cheia.improv .bola{border:2px dashed var(--noite);outline:2px solid var(--prata)}
+.vaga.cheia.lenda.improv .bola{outline-color:var(--ouro)}
+.vaga .tag{font-family:var(--mono);font-size:9.5px;background:var(--ouro);color:#22190a;border-radius:3px;padding:0 4px;white-space:nowrap}
+@keyframes pulsa{50%{transform:scale(1.1)}}
+.dica-campo{font-size:13px;margin:0;padding:8px 10px;border-radius:6px;background:var(--noite);border:1px solid var(--borda);color:var(--nevoa)}
+.dica-campo b{color:var(--prata)}
 .bola{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;
   background:rgba(14,21,49,.55);border:2px dashed rgba(255,255,255,.55);color:#fff}
 .vaga.cheia .bola{background:var(--prata);color:var(--noite);border:2px solid var(--prata)}
@@ -104,11 +116,15 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .clube{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;text-transform:uppercase}
 .pais{font-family:var(--mono);font-size:12px;color:var(--nevoa)}
 .elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
-.jog{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:10px;text-align:left;
+.jog{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;
   background:var(--noite);border:1px solid var(--borda);border-radius:6px;padding:8px 10px}
 .jog:hover:not(:disabled){border-color:var(--ouro)}
+.jog.sel{border-color:var(--ouro);background:rgba(233,185,73,.14)}
+.relogio{font-family:var(--mono);font-size:12px;color:var(--ouro);letter-spacing:0;text-transform:none}
+.jogo.fixo{animation:none}
+.jogo.vivo{border-color:var(--ouro)}
 .jog:disabled{opacity:.38;cursor:not-allowed}
-.pos{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:2px 0;text-align:center;border-radius:3px;background:var(--arquibancada);color:var(--nevoa)}
+.pos{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:2px 5px;min-width:36px;text-align:center;border-radius:3px;background:var(--arquibancada);color:var(--nevoa)}
 .jog .n{font-weight:600;line-height:1.2}
 .jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
 .nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
@@ -179,11 +195,12 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
       <div class="gramado" id="gramado">
         <div class="linhas"></div><div class="area cima"></div><div class="area baixo"></div>
       </div>
+      <p class="dica-campo" id="dicaCampo" hidden></p>
       <div class="forca" id="forca"></div>
       <div class="acoes">
         <button class="btn principal" id="btnSimular" disabled>Disputar a Libertadores</button>
         <div class="campo"><label for="velocidade">Velocidade</label>
-          <select id="velocidade"><option value="1800">Lenta</option><option value="900" selected>Normal</option><option value="300">Rápida</option><option value="0">Instantânea</option></select></div>
+          <select id="velocidade"><option value="12000">Lenta</option><option value="6000" selected>Normal</option><option value="2000">Rápida</option><option value="0">Instantânea</option></select></div>
         <button class="btn" id="btnRecomecar">Recomeçar</button>
       </div>
     </section>
@@ -202,7 +219,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 
   <section class="painel" id="simulacao" hidden aria-labelledby="t-sim">
     <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
-      <div class="acoes"><button class="btn" id="btnPular">Mostrar tudo</button></div></div>
+      <div class="acoes"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular o resto</button></div></div>
     <div id="veredito"></div>
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
@@ -297,31 +314,72 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const reduz=matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// Posições em que o jogador também atua (a primeira letra do dado original continua sendo a posição de origem).
+const ALT={
+"Pelé":"AM","Coutinho":"A","Pepe":"AM","Dorval":"AM","Mengálvio":"MA","Zito":"MD","Pedro Rocha":"MA","Luis Cubilla":"AM",
+"Juan Hohberg":"AM","Juan Joya":"AM","Julio César Abbadie":"AM","Humberto Maschio":"MA","Juan Ramón Verón":"AM","Néstor Togneri":"MD",
+"Ricardo Bochini":"MA","Daniel Bertoni":"AM","Agustín Balbuena":"AM","Raúl Bernao":"AM","Nelinho":"DM","Wilson Piazza":"MD",
+"Jairzinho":"AM","Palhinha":"AM","Joãozinho":"AM","Mario Zanabria":"MA","Víctor Espárrago":"MD","Julio César Morales":"AM",
+"Leandro":"DM","Júnior":"DM","Andrade":"MD","Adílio":"MA","Zico":"MA","Tita":"AM","Lico":"AM","Rubén Paz":"MA","Venancio Ramos":"AM",
+"Renato Gaúcho":"AM","Ricardo Giusti":"MD","Jorge Burruchaga":"MA","Claudio Borghi":"AM","Jorge Olguín":"DM","Norberto Alonso":"MA",
+"Antonio Alzamendi":"AM","Leonel Álvarez":"MD","José Perdomo":"MD","Marcelo Barticciotto":"AM","Patricio Yáñez":"AM","Cafu":"DM",
+"Raí":"MA","Müller":"AM","Leonardo":"MAD","Roberto Pompei":"MA","Arce":"DM","Carlos Miguel":"MA","Arílson":"MA","Paulo Nunes":"AM",
+"Juan Pablo Sorín":"DM","Ariel Ortega":"MA","Marcelo Gallardo":"MA","Enzo Francescoli":"AM","Felipe":"DM","Pedrinho":"MA","Alex":"MA",
+"Zinho":"MA","Juan Román Riquelme":"MA","Guillermo Barros Schelotto":"AM","Carlos Tevez":"AM","Hugo Ibarra":"DM","Clemente Rodríguez":"DM",
+"Rodolfo Arruabarrena":"DM","Cicinho":"DM","Amoroso":"AM","Fernandão":"AM","Rafael Sobis":"AM","Rodrigo Palacio":"AM","Damián Manso":"MA",
+"Joffre Guerrón":"AM","Luis Bolaños":"AM","Néicer Reasco":"DM","Andrés D'Alessandro":"MA","Giuliano":"MA","Kléber":"DM","Nei":"DM",
+"Danilo":"DM","Elano":"MA","Neymar":"AM","Emerson Sheik":"AM","Jorge Henrique":"AM","Ronaldinho":"MA","Bernard":"AM","Diego Tardelli":"AM",
+"Luan":"MA","Leandro Romagnoli":"MA","Ángel Correa":"AM","Julio Buffarini":"DM","Gonzalo Martínez":"MA","Carlos Sánchez":"MA",
+"Alejandro Guerra":"MA","Marlos Moreno":"AM","Orlando Berrío":"AM","Everton":"AM","Fernandinho":"AM","Ramiro":"MA",
+"Juan Fernando Quintero":"MA","Milton Casco":"DM","Filipe Luís":"DM","Rafinha":"DM","Everton Ribeiro":"MA","Giorgian De Arrascaeta":"MA",
+"Bruno Henrique":"AM","Raphael Veiga":"MA","Gustavo Scarpa":"MA","Dudu":"AM","Rony":"AM","Gabriel Menino":"MD","Mayke":"DM",
+"Everton Cebolinha":"AM","Marcelo":"DM","Jhon Arias":"MA","Keno":"AM","Thiago Almada":"MA","Luiz Henrique":"AM","Jefferson Savarino":"AM",
+"Júnior Santos":"AM","Alex Telles":"DM","Jorge Carrascal":"MA","Samuel Lino":"AM","Erick Pulgar":"MD","Saúl Ñíguez":"MD"
+};
+CHAMPS.forEach(c=>c.players.forEach(p=>{p.todas=[p.pos,...[...(ALT[p.name]||"")].filter(x=>x!==p.pos)];}));
+const posTxt=p=>p.todas.map(x=>POS[x]).join("/");
+const pode=(p,pos)=>p.todas.includes(pos);
+const efetiva=s=>s.player.r-(s.player.pos===s.pos?0:2);
+const VEL_MIN=90;
+
 const S={};
 function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value; S.mode=$("modo").value;
-  S.alm=$("almanaque").checked;
+  S.alm=$("almanaque").checked; S.revelar=false;
   const f=FORM[S.formation];
   S.slots=[{pos:"G",player:null}];
   ["D","M","A"].forEach(p=>{for(let k=0;k<f[p];k++)S.slots.push({pos:p,player:null});});
-  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=3; S.picks=0; S.anim=false; S.ultimo=-1;
+  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.anim=false; S.ultimo=-1;
+  S.sel=null; S.mover=null;
   S.seed=S.mode==="dia"?hashStr("gloria-"+hoje()):(Math.random()*4294967296)>>>0;
   S.rng=mulberry32(S.seed);
-  $("simulacao").hidden=true; clearTimeout(S.timer);
+  $("simulacao").hidden=true; clearTimeout(S.timer); clearInterval(S.relogio);
   render();
 }
-
-function vagaAberta(pos){return S.slots.some(s=>s.pos===pos&&!s.player);}
-function elegivel(p){return vagaAberta(p.pos)&&!S.used.has(p.name);}
+const escondido=()=>S.alm&&!S.revelar;
 function completo(){return S.slots.every(s=>s.player);}
+
+// Para onde um jogador pode ir. origem = índice da vaga de onde ele sai (null para jogador recém-sorteado).
+function alvos(p,origem){
+  const livres=[],outros=[];
+  S.slots.forEach((s,i)=>{
+    if(i===origem||!pode(p,s.pos))return;
+    if(!s.player){livres.push({i,tipo:"livre"});return;}
+    const q=s.player;
+    if(origem!=null){ if(pode(q,S.slots[origem].pos))outros.push({i,tipo:"troca"}); }
+    else{ const dest=S.slots.findIndex((t,j)=>!t.player&&j!==i&&pode(q,t.pos)); if(dest>=0)outros.push({i,tipo:"empurra",dest}); }
+  });
+  if(origem==null)return livres.length?livres:outros;
+  return livres.concat(outros);
+}
+function elegivel(p){return !S.used.has(p.name)&&alvos(p,null).length>0;}
 
 function sortear(gasta){
   if(S.anim||completo())return;
   if(gasta){if(S.trocas<=0)return;S.trocas--;}
   const cand=CHAMPS.filter(c=>!S.drawn.has(c.i));
   const alvo=cand[Math.floor(S.rng()*cand.length)];
-
-  S.current=null;
+  S.current=null; S.sel=null; S.mover=null;
   if(reduz){S.drawn.add(alvo.i);S.current=alvo;render();return;}
   S.anim=true; render();
   const placas=[...$("base").children]; let n=0; const total=14;
@@ -333,14 +391,32 @@ function sortear(gasta){
   tick();
 }
 
-function escalar(idx){
-  const c=S.current; if(!c)return; const p=c.players[idx]; if(!elegivel(p))return;
-  const slot=S.slots.find(s=>s.pos===p.pos&&!s.player);
-  slot.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.picks++;
-  S.ultimo=S.slots.indexOf(slot);
-  render();
+function selecionar(idx){
+  const p=S.current&&S.current.players[idx]; if(!p||!elegivel(p))return;
+  S.sel=S.sel===idx?null:idx; S.mover=null; render();
+  if(S.sel!=null){const g=$("gramado").getBoundingClientRect();if(g.top<0||g.bottom>innerHeight)$("gramado").scrollIntoView({behavior:reduz?"auto":"smooth",block:"center"});}
 }
 
+function cliqueVaga(i){
+  const s=S.slots[i];
+  if(S.sel!=null){
+    const c=S.current,p=c.players[S.sel];
+    const a=alvos(p,null).find(x=>x.i===i); if(!a)return;
+    if(a.tipo==="empurra"){S.slots[a.dest].player=s.player;}
+    s.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.sel=null; S.picks++; S.ultimo=i;
+    render(); return;
+  }
+  if(S.mover!=null){
+    if(S.mover===i){S.mover=null;render();return;}
+    const o=S.slots[S.mover]; const a=alvos(o.player,S.mover).find(x=>x.i===i);
+    if(a){const tmp=s.player;s.player=o.player;o.player=tmp;S.ultimo=i;S.mover=null;render();return;}
+    if(s.player){S.mover=i;render();}
+    return;
+  }
+  if(s.player){S.mover=i;render();}
+}
+
+function minhaLista(){return S.slots.filter(s=>s.player).map(s=>({pos:s.pos,r:efetiva(s),name:s.player.name,club:s.player.club,y:s.player.y}));}
 function forcaTime(players){
   const by={G:[],D:[],M:[],A:[]}; players.forEach(p=>by[p.pos].push(p.r));
   const all=players.map(p=>p.r); const avgAll=all.reduce((a,b)=>a+b,0)/all.length;
@@ -348,7 +424,7 @@ function forcaTime(players){
   return {att:0.55*m("A")+0.35*m("M")+0.10*m("D"), def:0.45*m("D")+0.30*m("G")+0.25*m("M"), ovr:avgAll, gk:m("G")};
 }
 function minhaForca(){
-  const ps=S.slots.filter(s=>s.player).map(s=>s.player); if(!ps.length)return null;
+  const ps=minhaLista(); if(!ps.length)return null;
   const f=forcaTime(ps);
   f.ent=entrosamento(ps);
   const pen=(1-f.ent)*4; f.att-=pen; f.def-=pen;
@@ -369,26 +445,40 @@ function entrosamento(ps){
 
 function render(){
   const travado=S.picks>0;
-  ["formacao","modo"].forEach(id=>$(id).disabled=travado);
-  // gramado
+  ["formacao","modo","almanaque"].forEach(id=>$(id).disabled=travado);
+  // alvos destacados no campo
+  let mapa=new Map();
+  if(S.sel!=null&&S.current)alvos(S.current.players[S.sel],null).forEach(a=>mapa.set(a.i,a));
+  else if(S.mover!=null)alvos(S.slots[S.mover].player,S.mover).forEach(a=>mapa.set(a.i,a));
   const g=$("gramado"); g.querySelectorAll(".vaga").forEach(e=>e.remove());
   const linhas={A:20,M:45,D:68,G:88};
   ["G","D","M","A"].forEach(pos=>{
     const arr=S.slots.map((s,i)=>({s,i})).filter(o=>o.s.pos===pos);
     arr.forEach((o,k)=>{
-      const el=document.createElement("div"); const p=o.s.player;
-      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA?" lenda":"")+(o.i===S.ultimo?" nova":"");
+      const el=document.createElement("button"); const p=o.s.player; const a=mapa.get(o.i);
+      el.type="button"; el.dataset.s=o.i;
+      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA?" lenda":"")+(p&&p.pos!==pos?" improv":"")+(o.i===S.ultimo?" nova":"")+(a?" alvo":"")+(S.mover===o.i?" movendo":"");
       el.style.left=((k+1)/(arr.length+1)*100)+"%"; el.style.top=(pos==="M"&&arr.length===5?(k%2?50:41):linhas[pos])+"%";
-      el.innerHTML=p?`<div class="bola">${S.alm?POS[pos].slice(0,1):p.r}</div><div class="nome">${esc(p.name)}</div><div class="origem">${esc(p.club)} ${String(p.y).slice(2)}</div>`
-                    :`<div class="bola" style="font-size:12px">${POS[pos]}</div>`;
+      const tag=a&&a.tipo==="troca"?`<span class="tag">trocar</span>`:a&&a.tipo==="empurra"?`<span class="tag">vai p/ ${POS[S.slots[a.dest].pos]}</span>`:"";
+      el.innerHTML=p?`<span class="bola">${escondido()?POS[pos].slice(0,1):efetiva(o.s)}</span><span class="nome">${esc(p.name)}</span><span class="origem">${esc(p.club)} ${String(p.y).slice(2)}</span>${tag}`
+                    :`<span class="bola" style="font-size:12px">${POS[pos]}</span>${tag}`;
+      el.setAttribute("aria-label",p?`${p.name}, ${POSNOME[pos]}`:`Vaga de ${POSNOME[pos]}`);
+      el.disabled=!(a||(p&&S.sel==null));
+      el.onclick=()=>cliqueVaga(o.i);
       g.appendChild(el);
     });
   });
   S.ultimo=-1;
   $("contador").textContent=S.picks+"/11";
+  // dica do campo
+  let dica="";
+  if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"");}
+  else if(S.mover!=null){const p=S.slots[S.mover].player;dica=`Mover <b>${esc(p.name)}</b> (${posTxt(p)}): toque numa vaga destacada. Toque nele de novo para cancelar.`;}
+  else if(S.picks)dica="Toque num jogador do campo para mudar a posição dele. Borda tracejada: jogando fora da posição de origem (−2 de força).";
+  $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   const f=minhaForca();
-  $("forca").innerHTML=f&&!S.alm?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
-     :(S.alm?`<span>Modo almanaque: força escondida até o fim da Copa.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
+  $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
+     :(escondido()?`<span>Modo almanaque: força escondida até o fim da Copa. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
   $("btnSimular").disabled=!completo();
   // base
   const b=$("base");
@@ -402,7 +492,7 @@ function render(){
   $("trocas").textContent=S.mode==="dia"?"Desafio de "+hoje().split("-").reverse().join("/"):"Modo livre";
   // sorteado
   const box=$("sorteado");
-  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Agora é com eles: dispute a Libertadores.</div>`;return;}
+  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Ainda dá para trocar jogadores de posição no campo. Depois, dispute a Libertadores.</div>`;return;}
   if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
   if(!S.current){
     const falta=["G","D","M","A"].map(p=>{const n=S.slots.filter(s=>s.pos===p&&!s.player).length;return n?`${n} ${POS[p]}`:null;}).filter(Boolean).join(" · ");
@@ -413,11 +503,11 @@ function render(){
   const algum=c.players.some(elegivel);
   box.innerHTML=`<div class="sorteado">
     <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${c.c} · campeão da Libertadores</div></div></div>
-    ${algum?`<p class="dica">Escolha um jogador. Só dá para escalar quem cabe numa vaga aberta.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
+    ${algum?`<p class="dica">Escolha um jogador e depois a vaga no campo.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas, nem mudando alguém de posição. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
-      const motivo=S.used.has(p.name)?"já escalado":(!vagaAberta(p.pos)?"posição completa":POSNOME[p.pos]);
-      return `<button class="jog" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${S.alm?"··":p.r}</span></button>`;}).join("")}</div></div>`;
-  box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>escalar(+bt.dataset.i));
+      const motivo=S.used.has(p.name)?"já escalado":(!ok?"sem vaga":(alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"vaga livre"));
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${escondido()?"··":p.r}</span></button>`;}).join("")}</div></div>`;
+  box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
 
@@ -440,7 +530,6 @@ function penaltis(A,B,rng){
   while(a===b){if(rng()<pA)a++;if(rng()<pB)b++;}
   return [a,b];
 }
-// mando: 1 = A joga em casa, 0 = campo neutro. final: prorrogação e pênaltis se empatar.
 function jogar(A,B,rng,mando,final){
   let ga=poisson(lambda(A,B,mando),rng), gb=poisson(lambda(B,A,-mando),rng);
   const gols=[]; addGols(gols,ga,A,rng); addGols(gols,gb,B,rng);
@@ -456,21 +545,18 @@ function jogar(A,B,rng,mando,final){
 }
 
 function simular(){
-  const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:S.slots.map(s=>s.player),...minhaForca()};
-  const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name).join(",")+S.style):(Math.random()*4294967296)>>>0;
+  const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:minhaLista(),...minhaForca()};
+  const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name+p.pos).join(",")+S.style):(Math.random()*4294967296)>>>0;
   const rng=mulberry32(seedSim);
   const pool=CHAMPS.map(c=>({eu:false,nome:`${c.t} ${c.y}`,players:c.players,...forcaTime(c.players)})).sort((a,b)=>a.ovr-b.ovr);
-  // Não enfrenta os campeões de onde saíram seus jogadores.
   const usados=new Set(me.players.map(p=>`${p.club} ${p.y}`));
   const adv=(lo,hi)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
     if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);return t;};
-  // Potes: um rival forte, um médio e um mais fraco.
   const grupo=[me,adv(.6,1),adv(.3,.7),adv(0,.4)];
   const tab=new Map(grupo.map(t=>[t,{t,j:0,v:0,e:0,d:0,gp:0,gc:0}]));
   const reg=(A,B,r)=>{const a=tab.get(A),b=tab.get(B);a.j++;b.j++;a.gp+=r.ga;a.gc+=r.gb;b.gp+=r.gb;b.gc+=r.ga;
     if(r.ga>r.gb){a.v++;b.d++;}else if(r.ga<r.gb){b.v++;a.d++;}else{a.e++;b.e++;}};
   const ordenar=()=>[...tab.values()].map(x=>({...x,pts:x.v*3+x.e,sg:x.gp-x.gc})).sort((a,b)=>b.pts-a.pts||b.sg-a.sg||b.gp-a.gp||(a.t.eu?-1:b.t.eu?1:0));
-  // Turno e returno: o primeiro de cada par é o mandante.
   const cal=[[[0,1],[2,3]],[[2,0],[3,1]],[[0,3],[1,2]],[[1,0],[3,2]],[[0,2],[1,3]],[[3,0],[2,1]]];
   const passos=[];
   cal.forEach((rd,k)=>{
@@ -486,7 +572,7 @@ function simular(){
   let fimFase=null;
   if(pos>1) fimFase="Eliminado na fase de grupos";
   else{
-    const voltaEmCasa=pos===0; // líder do grupo decide em casa
+    const voltaEmCasa=pos===0;
     const fases=[["Oitavas","Eliminado nas oitavas",.3,1],["Quartas","Eliminado nas quartas",.45,1],["Semifinal","Eliminado na semifinal",.6,1]];
     for(const [nome,fora,lo,hi] of fases){
       const o=adv(lo,hi);
@@ -512,17 +598,25 @@ function simular(){
 }
 
 function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":"e";}
-function htmlJogo(j,me){
-  const r=resJogo(j); const rot={v:"Vitória",e:"Empate",d:"Derrota"}[r];
+// min definido = jogo em andamento até aquele minuto
+function htmlJogo(j,me,id,min,novo){
+  const vivo=min!==undefined;
+  const gs=vivo?j.gols.filter(g=>ordMin(g.m)<min+1):j.gols;
+  const ga=vivo?gs.filter(g=>g.meu).length:j.ga, gb=vivo?gs.filter(g=>!g.meu).length:j.gb;
   const local={casa:"em casa",fora:"fora de casa",neutro:"campo neutro"}[j.local];
+  let estado;
+  if(vivo)estado=`<span class="relogio">${min>90&&!j.prorr?"90'":min+"'"}${min>90&&j.prorr?" prorrogação":""}</span>`;
+  else{const r=resJogo(j);estado=`<span class="res ${r}">${{v:"Vitória",e:"Empate",d:"Derrota"}[r]}</span>`;}
   const notas=[];
-  if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
-  if(j.prorr)notas.push("com prorrogação");
-  if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
-  if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
-  return `<div class="jogo"><div class="fase">${j.fase}<br>${local}<br><span class="res ${r}">${rot}</span></div>
-  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${j.ga} × ${j.gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
-  <div class="gols-lista">${j.gols.length?j.gols.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):"<span>Sem gols</span>"}</div></div>`;
+  if(!vivo){
+    if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
+    if(j.prorr)notas.push("com prorrogação");
+    if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+    if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
+  }
+  return `<div class="jogo${novo?"":" fixo"}${vivo?" vivo":""}" id="${id}"><div class="fase">${j.fase}<br>${local}<br>${estado}</div>
+  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${ga} × ${gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
+  <div class="gols-lista">${gs.length?gs.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):`<span>${vivo?"Bola rolando":"Sem gols"}</span>`}</div></div>`;
 }
 function htmlTabela(t){
   return `<p class="rotulo">Fase de grupos · turno e returno · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
@@ -534,55 +628,96 @@ function htmlVeredito(sim){
   const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
   const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
   const campeao=!sim.fimFase; const vitorias=res.filter(r=>r==="v").length;
-  const setezero=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
+  const perfeita=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
   const invicto=campeao&&!res.includes("d");
   let titulo,texto;
-  if(setezero){titulo="Campanha perfeita";texto=`13 vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
-  else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo. Faltou só fechar o gol: ${gc} sofrido${gc===1?"":"s"}.`;}
+  if(perfeita){titulo="Campanha perfeita";texto=`13 vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
+  else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo.`;}
   else if(campeao){titulo="Campeão da Libertadores";texto=`${esc(sim.me.nome)} levanta a taça, mas com sustos pelo caminho.`;}
   else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"A Copa acabou cedo. Sorteie de novo e monte outro time.";}
   const f=sim.me;
-  return `<div class="veredito ${setezero||campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
+  return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
     <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span></div>
     <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCopiar">Copiar resultado</button></div></div>`;
 }
 
+// Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
 function mostrar(sim){
+  clearInterval(S.relogio);
+  S.sim=sim; S.k=0; S.atual=null;
   $("simulacao").hidden=false; $("veredito").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
+  $("btnProximo").hidden=false; $("btnPular").hidden=false;
   $("simulacao").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});
-  let k=0; clearTimeout(S.timer);
-  const fim=()=>{
-    $("btnPular").disabled=true;
-    $("veredito").innerHTML=htmlVeredito(sim);
-    if(S.alm){S.alm=false;$("almanaque").checked=false;render();}
-    $("btnDenovo").onclick=()=>{novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});};
-    $("btnMesmo").onclick=()=>mostrar(simular());
-    $("btnCopiar").onclick=async()=>{
-      const js=sim.passos.map(p=>p.jogo);
-      const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.agg?` (agregado ${j.agg[0]}–${j.agg[1]})`:""}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
-      try{await navigator.clipboard.writeText(txt);$("btnCopiar").textContent="Copiado";}catch(e){$("btnCopiar").textContent="Não deu para copiar";}
-    };
-  };
-  const passo=()=>{
-    const p=sim.passos[k];
-    $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));
+  comecarJogo();
+}
+function comecarJogo(){
+  const p=S.sim.passos[S.k]; const id="jogo"+S.k; S.k++;
+  S.atual={p,id,fim:false};
+  $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
+  const dur=+$("velocidade").value; const ultimo=p.jogo.prorr?120:VEL_MIN;
+  controles();
+  if(reduz||!dur){apito();return;}
+  let min=0;
+  S.relogio=setInterval(()=>{
+    min++;
+    if(min>=ultimo){apito();return;}
+    const el=$(id); if(el)el.outerHTML=htmlJogo(p.jogo,S.sim.me,id,min,false);
+  },dur/ultimo);
+}
+function apito(){
+  clearInterval(S.relogio);
+  const a=S.atual; if(!a||a.fim)return; a.fim=true;
+  const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false);
+  if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
+  controles();
+}
+function controles(){
+  const a=S.atual, ultimo=S.k>=S.sim.passos.length;
+  const bp=$("btnProximo");
+  if(a&&!a.fim)bp.textContent="Ir para o apito final";
+  else bp.textContent=ultimo?"Ver resultado final":"Próximo jogo";
+}
+function proximo(){
+  const a=S.atual;
+  if(a&&!a.fim){apito();return;}
+  if(S.k>=S.sim.passos.length){fimCopa();return;}
+  comecarJogo();
+}
+function simularResto(){
+  apito();
+  while(S.k<S.sim.passos.length){
+    const p=S.sim.passos[S.k]; const id="jogo"+S.k; S.k++;
+    $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
     if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
-    k++;
-    if(k<sim.passos.length)S.timer=setTimeout(passo,reduz?0:+$("velocidade").value); else fim();
+  }
+  fimCopa();
+}
+function fimCopa(){
+  clearInterval(S.relogio);
+  const sim=S.sim;
+  $("btnProximo").hidden=true; $("btnPular").hidden=true;
+  $("veredito").innerHTML=htmlVeredito(sim);
+  $("veredito").scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});
+  if(S.alm){S.revelar=true;render();}
+  $("btnDenovo").onclick=()=>{novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});};
+  $("btnMesmo").onclick=()=>mostrar(simular());
+  $("btnCopiar").onclick=async()=>{
+    const js=sim.passos.map(p=>p.jogo);
+    const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.agg?` (agregado ${j.agg[0]}–${j.agg[1]})`:""}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
+    try{await navigator.clipboard.writeText(txt);$("btnCopiar").textContent="Copiado";}catch(e){$("btnCopiar").textContent="Não deu para copiar";}
   };
-  $("btnPular").disabled=false;
-  $("btnPular").onclick=()=>{clearTimeout(S.timer);while(k<sim.passos.length){const p=sim.passos[k];$("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);k++;}fim();};
-  if(reduz||$("velocidade").value==="0")$("btnPular").onclick(); else passo();
 }
 
 $("btnRolar").onclick=()=>sortear(false);
 $("btnTrocar").onclick=()=>sortear(true);
 $("btnRecomecar").onclick=novoJogo;
-$("btnSimular").onclick=()=>mostrar(simular());
-$("formacao").onchange=novoJogo; $("modo").onchange=novoJogo;
+$("btnSimular").onclick=()=>{S.sel=null;S.mover=null;render();mostrar(simular());};
+$("btnProximo").onclick=proximo;
+$("btnPular").onclick=simularResto;
+$("formacao").onchange=novoJogo; $("modo").onchange=novoJogo; $("almanaque").onchange=novoJogo;
 $("estilo").onchange=()=>{S.style=$("estilo").value;render();};
-$("almanaque").onchange=()=>{S.alm=$("almanaque").checked;render();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.sel!=null||S.mover!=null)){S.sel=null;S.mover=null;render();}});
 novoJogo();
 </script>
 </body>
