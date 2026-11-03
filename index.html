@@ -166,6 +166,12 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .campanha .v{background:var(--vitoria);color:#0b2a17}.campanha .e{background:var(--empate);color:#1b1e2c}.campanha .d{background:var(--derrota);color:#3a0d08}
 
 footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(5,8,20,.85);display:grid;place-items:center;overflow:auto;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
+.modal-titulo{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:0;line-height:1}
+.modal img{width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:6px;background:var(--noite)}
+.dica:empty{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -224,6 +230,20 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
   </section>
+
+  <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="t-modal">
+    <div class="modal-caixa">
+      <h2 class="modal-titulo" id="t-modal">Sua campanha</h2>
+      <img id="imgCampanha" alt="Imagem com o resultado, os jogos e a escalação da sua campanha">
+      <p class="dica">No celular, também dá para tocar e segurar a imagem para salvar.</p>
+      <p class="dica" id="avisoImg" aria-live="polite"></p>
+      <div class="acoes">
+        <button class="btn principal" id="btnEnviar">Compartilhar</button>
+        <button class="btn" id="btnBaixar">Baixar imagem</button>
+        <button class="btn" id="btnFechar">Fechar</button>
+      </div>
+    </div>
+  </div>
 
   <footer>Elencos resumidos e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis.</footer>
 </div>
@@ -639,7 +659,7 @@ function htmlVeredito(sim){
   return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
     <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span></div>
-    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCopiar">Copiar resultado</button></div></div>`;
+    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
 }
 
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
@@ -702,12 +722,127 @@ function fimCopa(){
   if(S.alm){S.revelar=true;render();}
   $("btnDenovo").onclick=()=>{novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});};
   $("btnMesmo").onclick=()=>mostrar(simular());
-  $("btnCopiar").onclick=async()=>{
-    const js=sim.passos.map(p=>p.jogo);
-    const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.agg?` (agregado ${j.agg[0]}–${j.agg[1]})`:""}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
-    try{await navigator.clipboard.writeText(txt);$("btnCopiar").textContent="Copiado";}catch(e){$("btnCopiar").textContent="Não deu para copiar";}
-  };
+  $("btnCompartilhar").onclick=()=>abrirCompartilhar(sim);
 }
+
+// ---------- Imagem da campanha ----------
+const SITE="alyssonov.github.io/gloria-eterna";
+const ESTILO_NOME={of:"ofensivo",eq:"equilibrado",def:"defensivo"};
+function resumo(sim){
+  const js=sim.passos.map(p=>p.jogo); const res=js.map(resJogo);
+  const gp=js.reduce((s,j)=>s+j.ga,0), gc=js.reduce((s,j)=>s+j.gb,0);
+  const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
+  const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
+  const campeao=!sim.fimFase;
+  const perfeita=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
+  const invicto=campeao&&!res.includes("d");
+  const titulo=perfeita?"Campanha perfeita":invicto?"Campeão invicto":campeao?"Campeão da Libertadores":sim.fimFase;
+  const tab=sim.passos[5]&&sim.passos[5].tabela; const posGrupo=tab?tab.findIndex(x=>x.t.eu)+1:null;
+  return {js,res,gp,gc,top,campeao,titulo,posGrupo,v:res.filter(r=>r==="v").length,e:res.filter(r=>r==="e").length,d:res.filter(r=>r==="d").length};
+}
+async function imagemCampanha(sim){
+  try{await Promise.all(['900 80px "Big Shoulders Display"','800 40px "Big Shoulders Display"','500 26px Archivo','600 26px Archivo','400 20px "DM Mono"'].map(f=>document.fonts.load(f)));}catch(e){}
+  const R=resumo(sim), js=R.js;
+  const W=1080, P=64, CW=W-2*P;
+  const alt=j=>(j.agg||j.final)?84:62;
+  const jogs=[...sim.me.players].sort((a,b)=>ORDEM[a.pos]-ORDEM[b.pos]);
+  const H=P+290+90+150+56+js.reduce((s,j)=>s+alt(j),0)+70+56+Math.ceil(jogs.length/2)*58+110;
+  const c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d");
+  const cor={noite:"#0e1531",sup:"#16204a",borda:"#2a3670",prata:"#dfe3ee",nevoa:"#9099bf",ouro:"#e9b949",v:"#5fd38d",e:"#c7cbe0",d:"#ff7a6b"};
+  const F={disp:(w,s)=>`${w} ${s}px "Big Shoulders Display", "Arial Narrow", Impact, sans-serif`,body:(w,s)=>`${w} ${s}px Archivo, "Segoe UI", sans-serif`,mono:s=>`400 ${s}px "DM Mono", Consolas, monospace`};
+  const esp=v=>{try{x.letterSpacing=v;}catch(e){}};
+  const corta=(t,max)=>{if(x.measureText(t).width<=max)return t;while(t.length>1&&x.measureText(t+"…").width>max)t=t.slice(0,-1);return t+"…";};
+  // fundo
+  const g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,"#25317a"); g.addColorStop(.3,cor.noite); g.addColorStop(1,"#0a1026");
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.fillStyle=cor.ouro; x.fillRect(0,0,W,10);
+  let y=P;
+  // cabeçalho
+  x.textBaseline="alphabetic"; x.textAlign="left";
+  esp("6px"); x.font=F.mono(22); x.fillStyle=cor.ouro; x.fillText("GLÓRIA ETERNA · COPA LIBERTADORES",P,y+22); esp("0px");
+  y+=40;
+  let tam=120; const tit=R.titulo.toUpperCase();
+  do{x.font=F.disp(900,tam);tam-=4;}while(x.measureText(tit).width>CW&&tam>40);
+  x.fillStyle=R.campeao?cor.ouro:cor.prata; y+=tam; x.fillText(tit,P,y);
+  y+=60; x.font=F.body(600,36); x.fillStyle=cor.prata; x.fillText(corta(sim.me.nome,CW),P,y);
+  y+=44; x.font=F.mono(22); x.fillStyle=cor.nevoa;
+  x.fillText(`${S.formation} · ${ESTILO_NOME[S.style]} · entrosamento ${Math.round(sim.me.ent*100)}%${R.posGrupo?` · ${R.posGrupo}º no grupo`:""}`,P,y);
+  y=P+290;
+  // campanha em quadradinhos
+  const q=58, gap=(CW-13*q)/12;
+  R.res.forEach((r,i)=>{const bx=P+i*(q+gap); x.fillStyle=cor[r]; x.beginPath(); x.roundRect?x.roundRect(bx,y,q,q,8):x.rect(bx,y,q,q); x.fill();
+    x.fillStyle=r==="v"?"#0b2a17":r==="e"?"#1b1e2c":"#3a0d08"; x.font=F.disp(800,32); x.textAlign="center"; x.fillText(r.toUpperCase(),bx+q/2,y+q/2+12); x.textAlign="left";});
+  for(let i=R.res.length;i<13;i++){const bx=P+i*(q+gap); x.strokeStyle=cor.borda; x.lineWidth=2; x.strokeRect(bx+1,y+1,q-2,q-2);}
+  y+=90;
+  // números
+  const blocos=[["CAMPANHA",`${R.v}V ${R.e}E ${R.d}D`],["GOLS",`${R.gp} pró · ${R.gc} contra`],["ARTILHEIRO",R.top?`${R.top[0]} · ${R.top[1]}`:"ninguém marcou"]];
+  const bw=[.24,.32,.44];
+  let bx=P; blocos.forEach(([l,v],i)=>{esp("3px");x.font=F.mono(18);x.fillStyle=cor.nevoa;x.fillText(l,bx,y+20);esp("0px");
+    x.font=F.disp(800,44);x.fillStyle=cor.prata;x.fillText(corta(v,CW*bw[i]-20),bx,y+72);bx+=CW*bw[i];});
+  y+=150;
+  // jogos
+  esp("3px"); x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText("JOGOS",P,y); esp("0px"); y+=20;
+  const locTxt={casa:"casa",fora:"fora",neutro:"neutro"};
+  js.forEach(j=>{
+    const h=alt(j);
+    x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(P,y+.5); x.lineTo(W-P,y+.5); x.stroke();
+    const r=resJogo(j);
+    x.font=F.mono(20); x.fillStyle=cor.prata; x.fillText(j.fase.replace("Grupos · ","Grupo ").replace(" rodada","").replace("Final · jogo único","Final"),P,y+30);
+    x.fillStyle=cor.nevoa; x.font=F.mono(17); x.fillText(locTxt[j.local],P,y+52);
+    x.font=F.disp(900,46); x.fillStyle=cor[r]; x.textAlign="center"; x.fillText(`${j.ga}–${j.gb}`,P+320,y+44); x.textAlign="left";
+    x.font=F.body(600,27); x.fillStyle=cor.prata; x.fillText(corta(j.adv.nome,CW-420),P+410,y+38);
+    if(j.agg||j.final){
+      const n=[]; if(j.agg)n.push(`agregado ${j.agg[0]}–${j.agg[1]}`); if(j.prorr)n.push("prorrogação"); if(j.pen)n.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+      n.push(j.final?(j.passou?"CAMPEÃO":"vice"):(j.passou?"classificado":"eliminado"));
+      x.font=F.mono(19); x.fillStyle=j.passou?cor.ouro:cor.d; x.fillText(corta(n.join(" · "),CW-420),P+410,y+68);
+    }
+    y+=h;
+  });
+  y+=70;
+  // escalação
+  esp("3px"); x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText("ESCALAÇÃO",P,y); esp("0px"); y+=24;
+  const colW=CW/2;
+  jogs.forEach((p,i)=>{
+    const cx=P+(i%2)*colW, cy=y+Math.floor(i/2)*58+34;
+    x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText(POS[p.pos],cx,cy);
+    x.font=F.body(600,25); x.fillStyle=p.r>=LENDA?cor.ouro:cor.prata; const nm=corta(p.name,colW-200); x.fillText(nm,cx+62,cy);
+    const w=x.measureText(nm).width; x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText(corta(`${p.club} ${String(p.y).slice(2)}`,colW-90-w-20),cx+62+w+12,cy);
+  });
+  y+=Math.ceil(jogs.length/2)*58+40;
+  // rodapé
+  x.fillStyle=cor.ouro; x.fillRect(P,y,CW,2); y+=44;
+  x.font=F.mono(22); x.fillStyle=cor.prata; x.textAlign="center"; x.fillText(`Monte o seu time: ${SITE}`,W/2,y); x.textAlign="left";
+  return c;
+}
+async function abrirCompartilhar(sim){
+  const bt=$("btnCompartilhar"); bt.disabled=true; bt.textContent="Gerando imagem…";
+  try{
+    const c=await imagemCampanha(sim);
+    const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+    S.imgBlob=blob; if(S.imgUrl)URL.revokeObjectURL(S.imgUrl); S.imgUrl=URL.createObjectURL(blob);
+    $("imgCampanha").src=S.imgUrl;
+    const file=new File([blob],"gloria-eterna.png",{type:"image/png"});
+    S.imgFile=file;
+    $("btnEnviar").hidden=!(navigator.canShare&&navigator.canShare({files:[file]}));
+    $("avisoImg").textContent="";
+    $("modal").hidden=false; $("btnFechar").focus();
+  }catch(e){$("avisoImg").textContent="Não foi possível gerar a imagem neste navegador.";}
+  bt.disabled=false; bt.textContent="Compartilhar resultado";
+}
+async function enviarImagem(){
+  try{await navigator.share({files:[S.imgFile],title:"Glória Eterna",text:`Minha campanha na Glória Eterna. Monte o seu: https://${SITE}/`});}
+  catch(e){if(e.name!=="AbortError")$("avisoImg").textContent="O compartilhamento não abriu. Baixe a imagem e envie pelo app.";}
+}
+function baixarImagem(){
+  const a=document.createElement("a"); a.href=S.imgUrl; a.download="gloria-eterna.png"; document.body.appendChild(a); a.click(); a.remove();
+  $("avisoImg").textContent="Se o download não começar, toque e segure a imagem para salvar.";
+}
+function fecharModal(){$("modal").hidden=true;}
+$("btnEnviar").onclick=enviarImagem;
+$("btnBaixar").onclick=baixarImagem;
+$("btnFechar").onclick=fecharModal;
+$("modal").onclick=e=>{if(e.target===$("modal"))fecharModal();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)fecharModal();});
 
 $("btnRolar").onclick=()=>sortear(false);
 $("btnTrocar").onclick=()=>sortear(true);
