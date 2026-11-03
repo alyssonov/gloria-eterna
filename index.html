@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Sorteie campeões da Libertadores, escale 11 jogadores e dispute a Copa atrás do 7 a 0.">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Glória Eterna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: noite de Libertadores. Gramado à esquerda (sua escalação), base do troféu à direita (as placas dos campeões que você sorteia). Tema único, escuro por escolha. */
+:root{
+  --noite:#0e1531;      /* fundo: céu de estádio */
+  --arquibancada:#16204a; /* superfícies */
+  --borda:#2a3670;
+  --prata:#dfe3ee;      /* texto, troféu */
+  --nevoa:#9099bf;      /* texto secundário */
+  --ouro:#e9b949;       /* acento: placas, lendas */
+  --gramado:#1c6a43;
+  --gramado2:#1a6140;
+  --vitoria:#5fd38d; --derrota:#ff7a6b; --empate:#c7cbe0;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--noite);color:var(--prata)}
+body{font-family:var(--body);font-size:15px;line-height:1.5;
+  background:radial-gradient(1200px 500px at 70% -10%,#24306a 0%,transparent 60%),var(--noite);
+  min-height:100%}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:24px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ouro);outline-offset:2px}
+
+/* Cabeçalho */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px}
+.marca h1{font-family:var(--display);font-weight:900;font-size:clamp(44px,8vw,84px);line-height:.88;letter-spacing:.01em;text-transform:uppercase;margin:0;text-wrap:balance}
+.marca h1 span{color:var(--ouro)}
+.marca p{margin:10px 0 0;color:var(--nevoa);max-width:58ch}
+.ajustes{display:flex;flex-wrap:wrap;gap:12px}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa)}
+select,input[type=text]{background:var(--arquibancada);border:1px solid var(--borda);border-radius:6px;padding:8px 10px;min-width:0}
+select:disabled{opacity:.55}
+.chave{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--prata);padding-top:18px}
+.chave input{accent-color:var(--ouro);width:16px;height:16px}
+
+/* Grade principal */
+main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.painel{background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.rotulo{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--nevoa);margin:0}
+.titulo-painel{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.titulo-painel h2{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:0;line-height:1}
+.contador{font-family:var(--mono);font-size:13px;color:var(--nevoa);font-variant-numeric:tabular-nums}
+
+/* Gramado */
+.gramado{position:relative;aspect-ratio:68/90;max-width:100%;border-radius:8px;overflow:hidden;
+  background:repeating-linear-gradient(180deg,var(--gramado) 0 10%,var(--gramado2) 10% 20%)}
+.gramado .linhas{position:absolute;inset:4%;border:2px solid rgba(255,255,255,.35);border-radius:2px;pointer-events:none}
+.gramado .linhas::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid rgba(255,255,255,.35)}
+.gramado .linhas::after{content:"";position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.35);border-radius:50%}
+.area{position:absolute;left:25%;width:50%;height:14%;border:2px solid rgba(255,255,255,.35);pointer-events:none}
+.area.cima{top:4%;border-top:none}.area.baixo{bottom:4%;border-bottom:none}
+.vaga{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;width:96px;text-align:center}
+.bola{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;
+  background:rgba(14,21,49,.55);border:2px dashed rgba(255,255,255,.55);color:#fff}
+.vaga.cheia .bola{background:var(--prata);color:var(--noite);border:2px solid var(--prata)}
+.vaga.cheia.lenda .bola{background:var(--ouro);border-color:var(--ouro)}
+.vaga .nome{font-size:11.5px;font-weight:600;line-height:1.15;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vaga .origem{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.8);white-space:nowrap;max-width:96px;overflow:hidden;text-overflow:ellipsis;margin-top:-2px}
+.vaga.nova .bola{animation:entra .5s ease-out}
+@keyframes entra{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (max-width:420px){.vaga{width:74px}.vaga .nome,.vaga .origem{max-width:74px}.bola{width:36px;height:36px;font-size:15px}}
+.forca{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;color:var(--nevoa);font-variant-numeric:tabular-nums}
+.forca b{color:var(--prata);font-weight:500}
+
+/* Base do troféu: placas */
+.base{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px;
+  padding:10px;border-radius:8px;background:linear-gradient(180deg,#2a1f14,#1d150d);border:1px solid #3d2d1b}
+.placa{font-family:var(--mono);font-size:11px;text-align:center;padding:4px 0;border-radius:3px;font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#8b7440,#5f4e29);color:#2a2112;transition:background .15s,color .15s}
+.placa.usada{background:#3a2e1c;color:#7b6a4c}
+.placa.acesa{background:linear-gradient(180deg,#ffe8a3,var(--ouro));color:#2a1d05;box-shadow:0 0 12px rgba(233,185,73,.7)}
+.placa.agora{background:linear-gradient(180deg,#ffffff,var(--prata));color:var(--noite);box-shadow:0 0 16px rgba(255,255,255,.55)}
+
+.acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--borda);background:transparent;border-radius:6px;padding:10px 16px;font-weight:600}
+.btn:hover:not(:disabled){border-color:var(--prata)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.principal{background:var(--ouro);border-color:var(--ouro);color:#22190a;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:.04em;padding:10px 22px}
+.btn.principal:hover:not(:disabled){background:#f3cb6a}
+.dica{color:var(--nevoa);font-size:13px;margin:0}
+
+/* Elenco sorteado */
+.sorteado{display:flex;flex-direction:column;gap:10px}
+.sorteado-topo{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.ano{font-family:var(--display);font-weight:900;font-size:56px;line-height:.85;color:var(--ouro);font-variant-numeric:tabular-nums}
+.clube{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;text-transform:uppercase}
+.pais{font-family:var(--mono);font-size:12px;color:var(--nevoa)}
+.elenco{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.jog{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:10px;text-align:left;
+  background:var(--noite);border:1px solid var(--borda);border-radius:6px;padding:8px 10px}
+.jog:hover:not(:disabled){border-color:var(--ouro)}
+.jog:disabled{opacity:.38;cursor:not-allowed}
+.pos{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:2px 0;text-align:center;border-radius:3px;background:var(--arquibancada);color:var(--nevoa)}
+.jog .n{font-weight:600;line-height:1.2}
+.jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
+.nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+.nota.lenda{color:var(--ouro)}
+.vazio{border:1px dashed var(--borda);border-radius:8px;padding:22px;text-align:center;color:var(--nevoa)}
+
+/* Simulação */
+#simulacao[hidden]{display:none}
+.tabela-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--borda);white-space:nowrap}
+th:nth-child(2),td:nth-child(2){text-align:left}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--nevoa);font-weight:500}
+tr.eu td{color:var(--ouro);font-weight:600}
+tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
+.jogos{display:flex;flex-direction:column;gap:8px}
+.jogo{display:grid;grid-template-columns:110px 1fr;gap:4px 14px;padding:12px;border-radius:8px;background:var(--noite);border:1px solid var(--borda);animation:surge .35s ease-out}
+@keyframes surge{from{transform:translateY(6px);opacity:.3}to{transform:none;opacity:1}}
+.fase{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa);grid-row:span 2}
+.fase .res{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:3px;letter-spacing:0}
+.res.v{background:rgba(95,211,141,.15);color:var(--vitoria)}
+.res.e{background:rgba(199,203,224,.12);color:var(--empate)}
+.res.d{background:rgba(255,122,107,.15);color:var(--derrota)}
+.placar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-weight:600}
+.placar .gols{font-family:var(--display);font-weight:900;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.placar .pen{font-family:var(--mono);font-size:12px;color:var(--nevoa);font-weight:400}
+.gols-lista{font-family:var(--mono);font-size:12px;color:var(--nevoa);display:flex;flex-wrap:wrap;gap:2px 12px}
+.gols-lista .meu{color:var(--prata)}
+@media (max-width:480px){.jogo{grid-template-columns:1fr}.fase{grid-row:auto}}
+
+.veredito{border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(135deg,#2b3a80,var(--arquibancada));border:1px solid var(--borda)}
+.veredito.ouro{background:linear-gradient(135deg,#6b531c,#2a2112);border-color:var(--ouro)}
+.veredito h3{font-family:var(--display);font-weight:900;font-size:clamp(40px,7vw,72px);line-height:.9;text-transform:uppercase;margin:0;text-wrap:balance}
+.veredito.ouro h3{color:var(--ouro)}
+.veredito p{margin:0;max-width:60ch}
+.campanha{display:flex;gap:4px}
+.campanha span{width:26px;height:26px;display:grid;place-items:center;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:500}
+.campanha .v{background:var(--vitoria);color:#0b2a17}.campanha .e{background:var(--empate);color:#1b1e2c}.campanha .d{background:var(--derrota);color:#3a0d08}
+
+footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="marca">
+      <h1>Glória <span>Eterna</span></h1>
+      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa: são 7 jogos. Ganhar todos sem sofrer gol é o 7 a 0.</p>
+    </div>
+    <div class="ajustes">
+      <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" value="Esquadrão da Glória"></div>
+      <div class="campo"><label for="formacao">Esquema</label>
+        <select id="formacao"><option>4-3-3</option><option>4-4-2</option><option>3-5-2</option></select></div>
+      <div class="campo"><label for="estilo">Estilo</label>
+        <select id="estilo"><option value="of">Ofensivo</option><option value="eq" selected>Equilibrado</option><option value="def">Defensivo</option></select></div>
+      <div class="campo"><label for="modo">Modo</label>
+        <select id="modo"><option value="livre">Livre</option><option value="dia">Desafio do dia</option></select></div>
+      <label class="chave" for="almanaque"><input type="checkbox" id="almanaque"> Almanaque (esconde a força)</label>
+    </div>
+  </header>
+
+  <main>
+    <section class="painel" aria-labelledby="t-esc">
+      <div class="titulo-painel"><h2 id="t-esc">Escalação</h2><span class="contador" id="contador">0/11</span></div>
+      <div class="gramado" id="gramado">
+        <div class="linhas"></div><div class="area cima"></div><div class="area baixo"></div>
+      </div>
+      <div class="forca" id="forca"></div>
+      <div class="acoes">
+        <button class="btn principal" id="btnSimular" disabled>Disputar a Libertadores</button>
+        <button class="btn" id="btnRecomecar">Recomeçar</button>
+      </div>
+    </section>
+
+    <section class="painel" aria-labelledby="t-sorteio" id="painelSorteio">
+      <div class="titulo-painel"><h2 id="t-sorteio">Sorteio</h2><span class="contador" id="trocas"></span></div>
+      <p class="rotulo">Base do troféu · campeões de 1960 a 2025</p>
+      <div class="base" id="base" aria-hidden="true"></div>
+      <div class="acoes">
+        <button class="btn principal" id="btnRolar">Sortear campeão</button>
+        <button class="btn" id="btnTrocar">Trocar sorteio</button>
+      </div>
+      <div id="sorteado"></div>
+    </section>
+  </main>
+
+  <section class="painel" id="simulacao" hidden aria-labelledby="t-sim">
+    <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
+      <div class="acoes"><button class="btn" id="btnPular">Mostrar tudo</button></div></div>
+    <div id="veredito"></div>
+    <div class="tabela-wrap" id="grupo"></div>
+    <div class="jogos" id="jogos"></div>
+  </section>
+
+  <footer>Elencos resumidos e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores.</footer>
+</div>
+
+<script>
+// [ano, clube, país, "POS Nome nota|..."]  POS: G goleiro, D defensor, M meio-campo, A atacante
+const RAW=[
+[1960,"Peñarol","URU","G Luis Maidana 80|D William Martínez 85|D Néstor Gonçálvez 82|D Santiago Pino 76|M Pedro Rocha 84|A Alberto Spencer 92|A Juan Hohberg 84|A Carlos Borges 82|A Luis Cubilla 86"],
+[1961,"Peñarol","URU","G Luis Maidana 80|D William Martínez 85|D Néstor Gonçálvez 83|D Edgardo González 76|M Pedro Rocha 86|A Alberto Spencer 92|A José Sasía 85|A Luis Cubilla 87|A Ernesto Ledesma 76"],
+[1962,"Santos","BRA","G Gilmar 88|D Mauro Ramos 86|D Lima 80|D Dalmo 78|D Calvet 76|M Zito 87|M Mengálvio 80|A Pelé 99|A Coutinho 88|A Pepe 87|A Dorval 82"],
+[1963,"Santos","BRA","G Gilmar 88|D Mauro Ramos 85|D Lima 81|D Dalmo 80|D Haroldo 76|M Zito 86|M Mengálvio 81|A Pelé 99|A Coutinho 88|A Pepe 86|A Dorval 82"],
+[1964,"Independiente","ARG","G Miguel Santoro 82|D Rubén Navarro 82|D Roberto Ferreiro 80|D Tomás Rolan 78|M Jorge Maldonado 78|M Raúl Savoy 80|A Raúl Bernao 84|A Mario Rodríguez 85|A Luis Suárez 78"],
+[1965,"Independiente","ARG","G Miguel Santoro 83|D Rubén Navarro 82|D Roberto Ferreiro 80|D Tomás Rolan 78|M Jorge Maldonado 78|M Raúl Savoy 80|A Raúl Bernao 84|A Osvaldo Mura 78"],
+[1966,"Peñarol","URU","G Ladislao Mazurkiewicz 92|D Pablo Forlán 82|D Omar Caetano 80|D Néstor Gonçálvez 83|D Juan Lezcano 78|M Pedro Rocha 90|A Alberto Spencer 92|A Julio César Abbadie 84|A Juan Joya 84"],
+[1967,"Racing","ARG","G Agustín Cejas 84|D Roberto Perfumo 89|D Alfio Basile 84|D Rubén Díaz 80|D Oscar Martín 80|M Juan Carlos Rulli 80|M Humberto Maschio 86|A Juan Carlos Cárdenas 86|A Norberto Raffo 84|A João Cardoso 78"],
+[1968,"Estudiantes","ARG","G Alberto Poletti 80|D Oscar Malbernat 80|D Ramón Aguirre Suárez 82|D Raúl Madero 80|D Eduardo Manera 78|M Carlos Bilardo 82|M Carlos Pachamé 80|M Néstor Togneri 76|A Juan Ramón Verón 88|A Marcos Conigliaro 82|A Felipe Ribaudo 76"],
+[1969,"Estudiantes","ARG","G Alberto Poletti 81|D Oscar Malbernat 80|D Ramón Aguirre Suárez 82|D Raúl Madero 80|D Eduardo Manera 78|M Carlos Bilardo 82|M Carlos Pachamé 80|M Néstor Togneri 77|A Juan Ramón Verón 88|A Marcos Conigliaro 82|A Juan Echecopar 76"],
+[1970,"Estudiantes","ARG","G Alberto Poletti 80|D Oscar Malbernat 80|D Ramón Aguirre Suárez 81|D Néstor Togneri 78|D Juan Echecopar 76|M Carlos Bilardo 81|M Carlos Pachamé 80|M Rubén Romeo 76|A Juan Ramón Verón 88|A Marcos Conigliaro 81|A Rubén Flores 76"],
+[1971,"Nacional","URU","G Manga 86|D Atilio Ancheta 85|D Juan Masnik 82|D Juan Blanco 78|M Julio Montero Castillo 84|M Víctor Espárrago 82|A Luis Cubilla 87|A Luis Artime 88|A Julio César Morales 84"],
+[1972,"Independiente","ARG","G Pepé Santoro 82|D Miguel López 78|D Francisco Sá 84|D Ricardo Pastoriza 85|D Ricardo Pavoni 84|M Rubén Galván 80|M Miguel Raimondo 78|M Ricardo Bochini 88|A Eduardo Maglioni 82|A Agustín Balbuena 80"],
+[1973,"Independiente","ARG","G Pepé Santoro 82|D Miguel López 78|D Francisco Sá 84|D Eduardo Commisso 78|D Ricardo Pavoni 84|M Rubén Galván 80|M Miguel Raimondo 78|M Ricardo Bochini 90|A Eduardo Maglioni 82|A Agustín Balbuena 80|A Ricardo Giachello 78"],
+[1974,"Independiente","ARG","G Pepé Santoro 82|D Miguel López 78|D Francisco Sá 84|D Eduardo Commisso 78|D Ricardo Pavoni 84|M Rubén Galván 80|M Miguel Raimondo 78|M Ricardo Bochini 91|A Daniel Bertoni 86|A Agustín Balbuena 80"],
+[1975,"Independiente","ARG","G Pepé Santoro 81|D Miguel López 78|D Ricardo Pavoni 84|D Eduardo Commisso 78|M Rubén Galván 80|M Ricardo Bochini 92|A Daniel Bertoni 87|A Ricardo Ruiz Moreno 78|A Agustín Balbuena 80"],
+[1976,"Cruzeiro","BRA","G Raul Plassmann 84|D Nelinho 88|D Morais 78|D Vanderlei 76|M Wilson Piazza 85|M Zé Carlos 80|A Jairzinho 90|A Palhinha 86|A Joãozinho 85"],
+[1977,"Boca Juniors","ARG","G Hugo Gatti 88|D Vicente Pernía 82|D Francisco Sá 84|D Roberto Mouzo 84|D Alberto Tarantini 84|M Mario Zanabria 82|M Rubén Suñé 82|M Jorge José Benítez 78|A Ernesto Mastrángelo 82|A Carlos Veglio 80|A Darío Felman 78"],
+[1978,"Boca Juniors","ARG","G Hugo Gatti 88|D Vicente Pernía 82|D Francisco Sá 84|D Roberto Mouzo 84|M Mario Zanabria 82|M Rubén Suñé 82|M Jorge José Benítez 78|A Ernesto Mastrángelo 82|A Hugo Perotti 80|A Carlos Salinas 76"],
+[1979,"Olimpia","PAR","G Ever Almeida 85|D Roberto Paredes 78|D Alicio Solalinde 80|D Miguel Ángel Piazza 78|M Carlos Kiese 80|M Luis Torres 76|A Evaristo Isasi 80|A Osvaldo Aquino 80"],
+[1980,"Nacional","URU","G Rodolfo Rodríguez 86|D Hugo de León 87|D José Moreira 78|M Víctor Espárrago 84|M Arsenio Luzardo 78|A Waldemar Victorino 86|A Alberto Bica 80|A Julio César Morales 82"],
+[1981,"Flamengo","BRA","G Raul Plassmann 84|D Leandro 88|D Mozer 85|D Marinho 80|D Júnior 92|M Andrade 86|M Adílio 86|M Zico 97|A Tita 84|A Nunes 85|A Lico 82"],
+[1982,"Peñarol","URU","G Gustavo Fernández 80|D Walter Olivera 84|D Nelson Gutiérrez 82|D Víctor Diogo 80|M Rubén Paz 86|M Mario Saralegui 82|A Fernando Morena 92|A Jair Gonçalves 82|A Venancio Ramos 84"],
+[1983,"Grêmio","BRA","G Mazarópi 82|D Paulo Roberto 80|D Baidek 78|D Hugo de León 88|D Casemiro 78|M China 80|M Osvaldo 80|M Tita 84|A Renato Gaúcho 90|A Tarciso 82|A Caio 78"],
+[1984,"Independiente","ARG","G Carlos Goyén 82|D Néstor Clausen 82|D Hugo Villaverde 82|D Enzo Trossero 84|M Ricardo Giusti 84|M Claudio Marangoni 85|M Ricardo Bochini 92|M Jorge Burruchaga 88|A Alejandro Barberón 78|A José Percudani 80"],
+[1985,"Argentinos Juniors","ARG","G Enrique Vidallé 80|D Jorge Olguín 85|D José Luis Pavoni 78|D Adrián Domenech 78|M Sergio Batista 85|M Mario Videla 78|M Emilio Commisso 80|A Claudio Borghi 87|A Carlos Ereros 78"],
+[1986,"River Plate","ARG","G Nery Pumpido 86|D Oscar Ruggeri 89|D Nelson Gutiérrez 83|D Alejandro Montenegro 78|M Héctor Enrique 82|M Américo Gallego 84|M Norberto Alonso 89|A Antonio Alzamendi 86|A Juan Gilberto Funes 84|A Roque Alfaro 80"],
+[1987,"Peñarol","URU","G Eduardo Pereira 80|D Obdulio Trasante 82|D Alfonso Domínguez 78|D José Herrera 80|M José Perdomo 84|M Eduardo da Silva 80|A Diego Aguirre 84|A Ricardo Viera 78"],
+[1988,"Nacional","URU","G Jorge Seré 84|D Hugo de León 88|D Felipe Revelez 78|M Santiago Ostolaza 82|M Yubert Lemos 78|M William Castro 80|A Ernesto Vargas 82|A Juan Carlos de Lima 80"],
+[1989,"Atlético Nacional","COL","G René Higuita 90|D Andrés Escobar 87|D Luis Carlos Perea 84|D Luis Fernando Herrera 80|D Gildardo Gómez 78|M Leonel Álvarez 85|M Alexis García 82|A Albeiro Usuriaga 84|A John Jairo Tréllez 82"],
+[1990,"Olimpia","PAR","G Ever Almeida 84|D Rogelio Delgado 82|D Vidal Sanabria 80|M Gabriel González 80|M Jorge Guasch 78|A Raúl Vicente Amarilla 86|A Adriano Samaniego 82"],
+[1991,"Colo-Colo","CHI","G Daniel Morón 84|D Lizardo Garrido 84|D Javier Margas 84|D Miguel Ramírez 82|M Jaime Pizarro 85|M Gabriel Mendoza 80|M Ricardo Dabrowski 80|A Marcelo Barticciotto 85|A Patricio Yáñez 84|A Rubén Martínez 83"],
+[1992,"São Paulo","BRA","G Zetti 87|D Cafu 92|D Antônio Carlos 84|D Ronaldão 82|D Adílson 80|M Pintado 82|M Raí 92|A Müller 88|A Palhinha 86"],
+[1993,"São Paulo","BRA","G Zetti 87|D Cafu 92|D Ronaldão 82|D André Luiz 80|M Dinho 82|M Toninho Cerezo 88|M Leonardo 88|M Raí 91|A Müller 88|A Palhinha 86"],
+[1994,"Vélez Sarsfield","ARG","G José Luis Chilavert 90|D Roberto Trotta 82|D Víctor Sotomayor 80|D Raúl Cardozo 80|D Héctor Almandoz 78|M Marcelo Gómez 80|M Christian Bassedas 84|M José Basualdo 80|M Roberto Pompei 80|A Omar Asad 82|A José Flores 80"],
+[1995,"Grêmio","BRA","G Danrlei 85|D Arce 87|D Adílson 84|D Rivarola 82|D Roger 80|M Dinho 83|M Goiano 80|M Carlos Miguel 82|M Arílson 82|A Paulo Nunes 85|A Jardel 88"],
+[1996,"River Plate","ARG","G Germán Burgos 84|D Hernán Díaz 82|D Celso Ayala 84|D Juan Pablo Sorín 84|M Leonardo Astrada 84|M Ariel Ortega 90|M Matías Almeyda 85|M Marcelo Gallardo 86|A Enzo Francescoli 92|A Hernán Crespo 90|A Julio Cruz 80"],
+[1997,"Cruzeiro","BRA","G Dida 87|D Vítor 80|D Gélson Baresi 80|D Nonato 78|M Ricardinho 82|M Cleisson 78|A Marcelo Ramos 84|A Elivélton 82"],
+[1998,"Vasco","BRA","G Carlos Germano 84|D Felipe 85|D Mauro Galvão 86|D Odvan 80|M Juninho Pernambucano 90|M Ramon 80|M Nasa 78|M Pedrinho 82|A Luizão 85|A Donizete 84"],
+[1999,"Palmeiras","BRA","G Marcos 90|D Arce 87|D Júnior Baiano 84|D Roque Júnior 85|D Júnior 82|M César Sampaio 86|M Rogério 80|M Zinho 85|M Alex 90|A Paulo Nunes 84|A Oséas 82|A Evair 85"],
+[2000,"Boca Juniors","ARG","G Óscar Córdoba 86|D Hugo Ibarra 82|D Jorge Bermúdez 84|D Walter Samuel 88|D Rodolfo Arruabarrena 82|M Mauricio Serna 84|M Sebastián Battaglia 82|M José Basualdo 80|M Juan Román Riquelme 93|A Martín Palermo 88|A Guillermo Barros Schelotto 86|A Marcelo Delgado 84"],
+[2001,"Boca Juniors","ARG","G Óscar Córdoba 87|D Hugo Ibarra 82|D Jorge Bermúdez 84|D Aníbal Matellán 80|M Mauricio Serna 84|M Sebastián Battaglia 83|M Juan Román Riquelme 94|A Guillermo Barros Schelotto 86|A Marcelo Delgado 84|A Antonio Barijho 78"],
+[2002,"Olimpia","PAR","G Ricardo Tavarelli 84|D Julio César Cáceres 82|D Néstor Isasi 78|M Julio César Enciso 82|M Sergio Órteman 80|A Richart Báez 82|A Miguel Ángel Benítez 80"],
+[2003,"Boca Juniors","ARG","G Roberto Abbondanzieri 86|D Hugo Ibarra 82|D Rolando Schiavi 82|D Nicolás Burdisso 84|D Clemente Rodríguez 80|M Raúl Cascini 80|M Sebastián Battaglia 84|M Diego Cagna 80|A Carlos Tevez 90|A Guillermo Barros Schelotto 86|A Marcelo Delgado 84"],
+[2004,"Once Caldas","COL","G Juan Carlos Henao 85|D Samuel Vanegas 80|D Edwin Cubero 78|M John Viáfara 82|M Elkin Soto 80|M Arnulfo Valentierra 82|A Sergio Galván Rey 80|A Jorge Agudelo 78"],
+[2005,"São Paulo","BRA","G Rogério Ceni 92|D Cicinho 85|D Diego Lugano 87|D Fabão 82|D Júnior 82|M Mineiro 84|M Josué 82|M Danilo 84|A Amoroso 86|A Luizão 84"],
+[2006,"Internacional","BRA","G Clemer 82|D Ceará 80|D Índio 82|D Fabiano Eller 82|D Rubens Cardoso 78|M Tinga 85|M Alex 84|A Fernandão 88|A Rafael Sobis 85"],
+[2007,"Boca Juniors","ARG","G Mauricio Caranta 80|D Hugo Ibarra 82|D Daniel Díaz 80|D Claudio Morel Rodríguez 80|M Éver Banega 85|M Pablo Ledesma 80|M Sebastián Battaglia 84|M Juan Román Riquelme 95|A Martín Palermo 86|A Rodrigo Palacio 85"],
+[2008,"LDU Quito","EQU","G José Francisco Cevallos 85|D Norberto Araujo 80|D Paul Ambrosi 78|D Jairo Campos 80|D Néicer Reasco 80|M Patricio Urrutia 82|M Enrique Vera 80|M Damián Manso 84|A Joffre Guerrón 84|A Claudio Bieler 84|A Luis Bolaños 82"],
+[2009,"Estudiantes","ARG","G Mariano Andújar 82|D Leandro Desábato 80|D Marcos Angeleri 78|D Germán Ré 78|M Juan Sebastián Verón 92|M Rodrigo Braña 80|M Enzo Pérez 82|M Leandro Benítez 78|A Mauro Boselli 85|A Gastón Fernández 82"],
+[2010,"Internacional","BRA","G Renan 78|D Nei 78|D Índio 82|D Bolívar 80|D Kléber 82|M Pablo Guiñazú 84|M Sandro 84|M Giuliano 84|M Andrés D'Alessandro 88|M Tinga 82|A Alecsandro 80|A Rafael Sobis 82"],
+[2011,"Santos","BRA","G Rafael Cabral 80|D Danilo 84|D Edu Dracena 82|D Durval 80|D Léo 80|M Arouca 82|M Elano 84|M Paulo Henrique Ganso 88|A Neymar 95|A Zé Love 78"],
+[2012,"Corinthians","BRA","G Cássio 86|D Alessandro 80|D Chicão 82|D Leandro Castán 84|D Fábio Santos 82|M Ralf 82|M Paulinho 88|M Danilo 82|M Alex 80|A Emerson Sheik 85|A Jorge Henrique 80|A Romarinho 78"],
+[2013,"Atlético Mineiro","BRA","G Victor 88|D Marcos Rocha 82|D Réver 84|D Leonardo Silva 82|D Júnior César 78|M Pierre 80|M Josué 80|M Ronaldinho 94|A Bernard 84|A Jô 84|A Diego Tardelli 85|A Luan 80"],
+[2014,"San Lorenzo","ARG","G Sebastián Torrico 82|D Julio Buffarini 80|D Mauro Cetto 78|D Santiago Gentiletti 80|D Emmanuel Más 78|M Juan Mercier 82|M Néstor Ortigoza 82|M Enzo Kalinski 78|M Leandro Romagnoli 84|A Ángel Correa 84|A Mauro Matos 78|A Héctor Villalba 78"],
+[2015,"River Plate","ARG","G Marcelo Barovero 84|D Gabriel Mercado 82|D Jonatan Maidana 82|D Ramiro Funes Mori 82|D Leonel Vangioni 80|M Leonardo Ponzio 84|M Carlos Sánchez 84|M Matías Kranevitter 84|M Gonzalo Martínez 84|A Lucas Alario 84|A Rodrigo Mora 84"],
+[2016,"Atlético Nacional","COL","G Franco Armani 85|D Daniel Bocanegra 78|D Davinson Sánchez 84|D Alexis Henríquez 80|D Farid Díaz 80|M Alexander Mejía 82|M Sebastián Pérez 80|M Macnelly Torres 84|M Alejandro Guerra 85|A Marlos Moreno 82|A Miguel Borja 85|A Orlando Berrío 82"],
+[2017,"Grêmio","BRA","G Marcelo Grohe 85|D Edílson 80|D Pedro Geromel 86|D Walter Kannemann 84|D Bruno Cortez 78|M Arthur 87|M Michel 78|M Ramiro 80|M Luan 88|A Fernandinho 80|A Lucas Barrios 82|A Everton 84"],
+[2018,"River Plate","ARG","G Franco Armani 87|D Gonzalo Montiel 82|D Lucas Martínez Quarta 82|D Javier Pinola 82|D Milton Casco 80|M Enzo Pérez 84|M Leonardo Ponzio 82|M Exequiel Palacios 84|M Gonzalo Martínez 88|M Ignacio Fernández 84|M Juan Fernando Quintero 86|A Lucas Pratto 84|A Rafael Santos Borré 84"],
+[2019,"Flamengo","BRA","G Diego Alves 84|D Rafinha 84|D Rodrigo Caio 84|D Pablo Marí 82|D Filipe Luís 86|M Willian Arão 82|M Gerson 86|M Everton Ribeiro 86|M Giorgian De Arrascaeta 88|A Bruno Henrique 88|A Gabriel Barbosa 90"],
+[2020,"Palmeiras","BRA","G Weverton 86|D Marcos Rocha 80|D Gustavo Gómez 86|D Luan 80|D Matías Viña 80|M Danilo 82|M Zé Rafael 80|M Gabriel Menino 80|M Raphael Veiga 85|A Rony 84|A Luiz Adriano 82|A Breno Lopes 76"],
+[2021,"Palmeiras","BRA","G Weverton 87|D Mayke 78|D Gustavo Gómez 87|D Luan 80|D Joaquín Piquerez 80|M Danilo 84|M Zé Rafael 80|M Raphael Veiga 86|M Gustavo Scarpa 84|A Dudu 85|A Rony 84|A Deyverson 76"],
+[2022,"Flamengo","BRA","G Santos 80|D Rodinei 78|D David Luiz 84|D Léo Pereira 80|D Filipe Luís 84|M João Gomes 82|M Thiago Maia 80|M Everton Ribeiro 84|M Giorgian De Arrascaeta 88|A Pedro 87|A Gabriel Barbosa 88|A Everton Cebolinha 82"],
+[2023,"Fluminense","BRA","G Fábio 84|D Samuel Xavier 80|D Nino 84|D Felipe Melo 82|D Marcelo 88|M André 85|M Martinelli 80|M Paulo Henrique Ganso 84|M Jhon Arias 85|A Germán Cano 88|A Keno 80|A John Kennedy 80"],
+[2024,"Botafogo","BRA","G John 82|D Vitinho 80|D Bastos 80|D Alexander Barboza 84|D Alex Telles 84|M Gregore 82|M Marlon Freitas 82|M Thiago Almada 88|A Luiz Henrique 88|A Igor Jesus 85|A Jefferson Savarino 84|A Júnior Santos 82"],
+[2025,"Flamengo","BRA","G Agustín Rossi 84|D Guillermo Varela 80|D Léo Ortiz 84|D Danilo 84|D Léo Pereira 82|D Alex Sandro 82|M Jorginho 86|M Erick Pulgar 82|M Saúl Ñíguez 82|M Giorgian De Arrascaeta 88|M Jorge Carrascal 84|A Pedro 86|A Bruno Henrique 84|A Samuel Lino 82"]
+];
+
+const POS={G:"GOL",D:"DEF",M:"MEI",A:"ATA"};
+const POSNOME={G:"goleiro",D:"defensor",M:"meio-campista",A:"atacante"};
+const ORDEM={G:0,D:1,M:2,A:3};
+const CHAMPS=RAW.map(([y,t,c,s],i)=>({i,y,t,c,players:s.split("|").map(x=>{const p=x.trim().split(" ");return {pos:p[0],name:p.slice(1,-1).join(" "),r:+p[p.length-1]};})}));
+const FORM={"4-3-3":{D:4,M:3,A:3},"4-4-2":{D:4,M:4,A:2},"3-5-2":{D:3,M:5,A:2}};
+const LENDA=90;
+
+// RNG
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return h>>>0;}
+function hoje(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const reduz=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const S={};
+function novoJogo(){
+  S.formation=$("formacao").value; S.style=$("estilo").value; S.mode=$("modo").value;
+  S.alm=$("almanaque").checked;
+  const f=FORM[S.formation];
+  S.slots=[{pos:"G",player:null}];
+  ["D","M","A"].forEach(p=>{for(let k=0;k<f[p];k++)S.slots.push({pos:p,player:null});});
+  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=3; S.picks=0; S.anim=false; S.ultimo=-1;
+  S.seed=S.mode==="dia"?hashStr("gloria-"+hoje()):(Math.random()*4294967296)>>>0;
+  S.rng=mulberry32(S.seed);
+  $("simulacao").hidden=true; clearTimeout(S.timer);
+  render();
+}
+
+function vagaAberta(pos){return S.slots.some(s=>s.pos===pos&&!s.player);}
+function elegivel(p){return vagaAberta(p.pos)&&!S.used.has(p.name);}
+function completo(){return S.slots.every(s=>s.player);}
+
+function sortear(gasta){
+  if(S.anim||completo())return;
+  if(gasta){if(S.trocas<=0)return;S.trocas--;}
+  const cand=CHAMPS.filter(c=>!S.drawn.has(c.i));
+  const alvo=cand[Math.floor(S.rng()*cand.length)];
+  S.drawn.add(alvo.i);
+  S.current=null;
+  if(reduz){S.current=alvo;render();return;}
+  S.anim=true; render();
+  const placas=[...$("base").children]; let n=0; const total=14;
+  const tick=()=>{
+    placas.forEach(p=>p.classList.remove("acesa"));
+    if(n<total){placas[Math.floor(Math.random()*placas.length)].classList.add("acesa");n++;S.timer=setTimeout(tick,45+n*6);}
+    else{S.anim=false;S.current=alvo;render();}
+  };
+  tick();
+}
+
+function escalar(idx){
+  const c=S.current; if(!c)return; const p=c.players[idx]; if(!elegivel(p))return;
+  const slot=S.slots.find(s=>s.pos===p.pos&&!s.player);
+  slot.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.picks++;
+  S.ultimo=S.slots.indexOf(slot);
+  render();
+}
+
+function forcaTime(players){
+  const by={G:[],D:[],M:[],A:[]}; players.forEach(p=>by[p.pos].push(p.r));
+  const all=players.map(p=>p.r); const avgAll=all.reduce((a,b)=>a+b,0)/all.length;
+  const m=k=>by[k].length?by[k].reduce((a,b)=>a+b,0)/by[k].length:avgAll-3;
+  return {att:0.55*m("A")+0.35*m("M")+0.10*m("D"), def:0.45*m("D")+0.30*m("G")+0.25*m("M"), ovr:avgAll};
+}
+function minhaForca(){
+  const ps=S.slots.filter(s=>s.player).map(s=>s.player); if(!ps.length)return null;
+  const f=forcaTime(ps);
+  if(S.style==="of"){f.att+=3;f.def-=3;} else if(S.style==="def"){f.att-=3;f.def+=3;}
+  if(S.formation==="4-3-3")f.att+=1; else if(S.formation==="3-5-2"){f.att+=.5;f.def-=.5;}
+  return f;
+}
+
+function render(){
+  const travado=S.picks>0;
+  ["formacao","modo"].forEach(id=>$(id).disabled=travado);
+  // gramado
+  const g=$("gramado"); g.querySelectorAll(".vaga").forEach(e=>e.remove());
+  const linhas={A:20,M:45,D:68,G:88};
+  ["G","D","M","A"].forEach(pos=>{
+    const arr=S.slots.map((s,i)=>({s,i})).filter(o=>o.s.pos===pos);
+    arr.forEach((o,k)=>{
+      const el=document.createElement("div"); const p=o.s.player;
+      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA?" lenda":"")+(o.i===S.ultimo?" nova":"");
+      el.style.left=((k+1)/(arr.length+1)*100)+"%"; el.style.top=(pos==="M"&&arr.length===5?(k%2?50:41):linhas[pos])+"%";
+      el.innerHTML=p?`<div class="bola">${S.alm?POS[pos].slice(0,1):p.r}</div><div class="nome">${esc(p.name)}</div><div class="origem">${esc(p.club)} ${String(p.y).slice(2)}</div>`
+                    :`<div class="bola" style="font-size:12px">${POS[pos]}</div>`;
+      g.appendChild(el);
+    });
+  });
+  S.ultimo=-1;
+  $("contador").textContent=S.picks+"/11";
+  const f=minhaForca();
+  $("forca").innerHTML=f&&!S.alm?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span>`
+     :(S.alm?`<span>Modo almanaque: força escondida até o fim da Copa.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
+  $("btnSimular").disabled=!completo();
+  // base
+  const b=$("base");
+  if(!b.children.length) b.innerHTML=CHAMPS.map(c=>`<div class="placa" title="${esc(c.t)} ${c.y}">${c.y}</div>`).join("");
+  [...b.children].forEach((el,i)=>{el.classList.toggle("usada",S.drawn.has(i)&&!(S.current&&S.current.i===i));el.classList.toggle("agora",!!(S.current&&S.current.i===i));});
+  // botões
+  const cheio=completo();
+  $("btnRolar").disabled=S.anim||cheio||!!S.current;
+  $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
+  $("btnTrocar").textContent=`Trocar sorteio (${S.trocas})`;
+  $("trocas").textContent=S.mode==="dia"?"Desafio de "+hoje().split("-").reverse().join("/"):"Modo livre";
+  // sorteado
+  const box=$("sorteado");
+  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Agora é com eles: dispute a Libertadores.</div>`;return;}
+  if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
+  if(!S.current){
+    const falta=["G","D","M","A"].map(p=>{const n=S.slots.filter(s=>s.pos===p&&!s.player).length;return n?`${n} ${POS[p]}`:null;}).filter(Boolean).join(" · ");
+    box.innerHTML=`<div class="vazio">Sorteie um campeão e escolha um jogador daquele elenco.<br><span class="contador">Faltam: ${falta}</span></div>`;return;
+  }
+  const c=S.current;
+  const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||b.p.r-a.p.r);
+  const algum=c.players.some(elegivel);
+  box.innerHTML=`<div class="sorteado">
+    <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${c.c} · campeão da Libertadores</div></div></div>
+    ${algum?`<p class="dica">Escolha um jogador. Só dá para escalar quem cabe numa vaga aberta.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
+    <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
+      const motivo=S.used.has(p.name)?"já escalado":(!vagaAberta(p.pos)?"posição completa":POSNOME[p.pos]);
+      return `<button class="jog" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${S.alm?"··":p.r}</span></button>`;}).join("")}</div></div>`;
+  box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>escalar(+bt.dataset.i));
+  const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
+}
+
+// ---------- Simulação ----------
+function poisson(l,rng){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=rng();}while(p>L);return k-1;}
+function lambda(a,d){return 1.3*Math.exp((a.att-d.def)/11);}
+function marcador(players,rng){
+  const w=players.map(p=>({p,w:({G:0,D:.6,M:2.5,A:5}[p.pos])*Math.pow(p.r/80,3)}));
+  let t=w.reduce((s,x)=>s+x.w,0)*rng();for(const x of w){t-=x.w;if(t<=0)return x.p.name;}return w[w.length-1].p.name;
+}
+function minutos(n,rng){const ms=[];for(let i=0;i<n;i++){let m=1+Math.floor(rng()*93);ms.push(m>90?"90+"+(m-90):String(m));}return ms;}
+function jogar(A,B,rng,matamata){
+  const ga=poisson(lambda(A,B),rng), gb=poisson(lambda(B,A),rng);
+  const gols=[];
+  minutos(ga,rng).forEach(m=>gols.push({m,quem:marcador(A.players,rng),meu:A.eu}));
+  minutos(gb,rng).forEach(m=>gols.push({m,quem:marcador(B.players,rng),meu:B.eu}));
+  gols.sort((x,y)=>parseFloat(x.m.replace("+","."))-parseFloat(y.m.replace("+",".")));
+  let pen=null;
+  if(matamata&&ga===gb){let a=0,b=0;for(let i=0;i<5;i++){if(rng()<.76)a++;if(rng()<.76)b++;}while(a===b){if(rng()<.76)a++;if(rng()<.76)b++;}pen=[a,b];}
+  return {ga,gb,gols,pen};
+}
+
+function simular(){
+  const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:S.slots.map(s=>s.player),...minhaForca()};
+  const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name).join(",")+S.style):(Math.random()*4294967296)>>>0;
+  const rng=mulberry32(seedSim);
+  const pool=CHAMPS.map(c=>({eu:false,nome:`${c.t} ${c.y}`,players:c.players,...forcaTime(c.players)})).sort((a,b)=>a.ovr-b.ovr);
+  const usados=new Set();
+  const adv=(lo,hi)=>{const a=Math.floor(lo*pool.length),b=Math.floor(hi*pool.length);const c=pool.slice(a,b).filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);return t;};
+  const grupo=[me,adv(0,.75),adv(0,.75),adv(0,.75)];
+  const tab=new Map(grupo.map(t=>[t,{t,j:0,v:0,e:0,d:0,gp:0,gc:0}]));
+  const reg=(A,B,r)=>{const a=tab.get(A),b=tab.get(B);a.j++;b.j++;a.gp+=r.ga;a.gc+=r.gb;b.gp+=r.gb;b.gc+=r.ga;
+    if(r.ga>r.gb){a.v++;b.d++;}else if(r.ga<r.gb){b.v++;a.d++;}else{a.e++;b.e++;}};
+  const ordenar=()=>[...tab.values()].map(x=>({...x,pts:x.v*3+x.e,sg:x.gp-x.gc})).sort((a,b)=>b.pts-a.pts||b.sg-a.sg||b.gp-a.gp||(a.t.eu?-1:b.t.eu?1:0));
+  const rodadas=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+  const passos=[];
+  rodadas.forEach((rd,k)=>{
+    let meuJogo=null;
+    rd.forEach(([x,y])=>{const r=jogar(grupo[x],grupo[y],rng,false);reg(grupo[x],grupo[y],r);if(x===0)meuJogo={fase:`Grupo · ${k+1}ª rodada`,adv:grupo[y],...r};});
+    passos.push({jogo:meuJogo,tabela:ordenar()});
+  });
+  const fin=ordenar(); const pos=fin.findIndex(x=>x.t.eu);
+  let fimFase=null;
+  if(pos>1) fimFase="Eliminado na fase de grupos";
+  else{
+    const fases=[["Oitavas de final",.2,.8],["Quartas de final",.4,1],["Semifinal",.6,1],["Final",.75,1]];
+    for(const [nome,lo,hi] of fases){
+      const o=adv(lo,hi); const r=jogar(me,o,rng,true);
+      passos.push({jogo:{fase:nome,adv:o,...r}});
+      const venceu=r.ga>r.gb||(r.pen&&r.pen[0]>r.pen[1]);
+      if(!venceu){fimFase={"Oitavas de final":"Eliminado nas oitavas","Quartas de final":"Eliminado nas quartas","Semifinal":"Eliminado na semifinal","Final":"Vice-campeão"}[nome];break;}
+    }
+  }
+  return {me,passos,fimFase};
+}
+
+function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":(j.pen?(j.pen[0]>j.pen[1]?"v":"d"):"e");}
+function htmlJogo(j,me){
+  const r=resJogo(j); const rot={v:"Vitória",e:"Empate",d:"Derrota"}[r]+(j.pen?" nos pênaltis":"");
+  return `<div class="jogo"><div class="fase">${j.fase}<br><span class="res ${r}">${rot}</span></div>
+  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${j.ga} × ${j.gb}</span><span>${esc(j.adv.nome)}</span>${j.pen?`<span class="pen">pên. ${j.pen[0]}–${j.pen[1]}</span>`:""}</div>
+  <div class="gols-lista">${j.gols.length?j.gols.map(g=>`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}</span>`).join(""):"<span>Sem gols</span>"}</div></div>`;
+}
+function htmlTabela(t){
+  return `<p class="rotulo">Grupo · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
+    t.map((x,i)=>`<tr class="${x.t.eu?"eu":""} ${i<2?"classifica":""}"><td>${i+1}</td><td>${esc(x.t.nome)}</td><td>${x.pts}</td><td>${x.j}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp}</td><td>${x.gc}</td><td>${x.sg>0?"+":""}${x.sg}</td></tr>`).join("")}</tbody></table>`;
+}
+function htmlVeredito(sim){
+  const js=sim.passos.map(p=>p.jogo); const res=js.map(resJogo);
+  const gp=js.reduce((s,j)=>s+j.ga,0), gc=js.reduce((s,j)=>s+j.gb,0);
+  const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
+  const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
+  const campeao=!sim.fimFase; const vitorias=res.filter(r=>r==="v").length;
+  const setezero=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
+  const invicto=campeao&&!res.includes("d")&&js.every(j=>!j.pen);
+  let titulo,texto;
+  if(setezero){titulo="7 a 0";texto=`Sete vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
+  else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo. Faltou só fechar o gol: ${gc} sofrido${gc===1?"":"s"}.`;}
+  else if(campeao){titulo="Campeão da Libertadores";texto=`${esc(sim.me.nome)} levanta a taça, mas com sustos pelo caminho.`;}
+  else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"A Copa acabou cedo. Sorteie de novo e monte outro time.";}
+  const f=sim.me;
+  return `<div class="veredito ${setezero||campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
+    <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
+    <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span></div>
+    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCopiar">Copiar resultado</button></div></div>`;
+}
+
+function mostrar(sim){
+  $("simulacao").hidden=false; $("veredito").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
+  $("simulacao").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});
+  let k=0; clearTimeout(S.timer);
+  const fim=()=>{
+    $("btnPular").disabled=true;
+    $("veredito").innerHTML=htmlVeredito(sim);
+    if(S.alm){S.alm=false;$("almanaque").checked=false;render();}
+    $("btnDenovo").onclick=()=>{novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});};
+    $("btnMesmo").onclick=()=>mostrar(simular());
+    $("btnCopiar").onclick=async()=>{
+      const js=sim.passos.map(p=>p.jogo);
+      const txt=`Glória Eterna · ${sim.me.nome} (${S.formation})\n${$("veredito").querySelector("h3").textContent}\n${js.map(j=>`${j.fase}: ${j.ga}×${j.gb} ${j.adv.nome}${j.pen?` (pên. ${j.pen[0]}–${j.pen[1]})`:""}`).join("\n")}`;
+      try{await navigator.clipboard.writeText(txt);$("btnCopiar").textContent="Copiado";}catch(e){$("btnCopiar").textContent="Não deu para copiar";}
+    };
+  };
+  const passo=()=>{
+    const p=sim.passos[k];
+    $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));
+    if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
+    k++;
+    if(k<sim.passos.length)S.timer=setTimeout(passo,reduz?0:900); else fim();
+  };
+  $("btnPular").disabled=false;
+  $("btnPular").onclick=()=>{clearTimeout(S.timer);while(k<sim.passos.length){const p=sim.passos[k];$("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,sim.me));if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);k++;}fim();};
+  passo();
+}
+
+$("btnRolar").onclick=()=>sortear(false);
+$("btnTrocar").onclick=()=>sortear(true);
+$("btnRecomecar").onclick=novoJogo;
+$("btnSimular").onclick=()=>mostrar(simular());
+$("formacao").onchange=novoJogo; $("modo").onchange=novoJogo;
+$("estilo").onchange=()=>{S.style=$("estilo").value;render();};
+$("almanaque").onchange=()=>{S.alm=$("almanaque").checked;render();};
+novoJogo();
+</script>
+</body>
+</html>
