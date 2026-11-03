@@ -318,15 +318,15 @@ function sortear(gasta){
   if(gasta){if(S.trocas<=0)return;S.trocas--;}
   const cand=CHAMPS.filter(c=>!S.drawn.has(c.i));
   const alvo=cand[Math.floor(S.rng()*cand.length)];
-  S.drawn.add(alvo.i);
+
   S.current=null;
-  if(reduz){S.current=alvo;render();return;}
+  if(reduz){S.drawn.add(alvo.i);S.current=alvo;render();return;}
   S.anim=true; render();
   const placas=[...$("base").children]; let n=0; const total=14;
   const tick=()=>{
     placas.forEach(p=>p.classList.remove("acesa"));
     if(n<total){placas[Math.floor(Math.random()*placas.length)].classList.add("acesa");n++;S.timer=setTimeout(tick,45+n*6);}
-    else{S.anim=false;S.current=alvo;render();}
+    else{S.anim=false;S.drawn.add(alvo.i);S.current=alvo;render();}
   };
   tick();
 }
