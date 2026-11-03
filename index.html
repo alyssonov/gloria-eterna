@@ -52,7 +52,7 @@ select:disabled{opacity:.55}
 
 /* Grade principal */
 main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
-@media (max-width:860px){main{grid-template-columns:1fr}}
+@media (max-width:860px){main{grid-template-columns:1fr}#painelSorteio{order:-1}}
 .painel{background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
 .rotulo{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--nevoa);margin:0}
 .titulo-painel{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -171,7 +171,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 .modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
 .modal-titulo{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:0;line-height:1}
 .modal img{width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:6px;background:var(--noite)}
-.dica:empty{display:none}
+.dica:empty,.modal[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -424,6 +424,7 @@ function cliqueVaga(i){
     const a=alvos(p,null).find(x=>x.i===i); if(!a)return;
     if(a.tipo==="empurra"){S.slots[a.dest].player=s.player;}
     s.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.sel=null; S.picks++; S.ultimo=i;
+    if(matchMedia("(max-width:860px)").matches&&!completo()){setTimeout(()=>{const r=$("painelSorteio").getBoundingClientRect();if(r.top<0||r.top>innerHeight*.5)$("painelSorteio").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});},450);}
     render(); return;
   }
   if(S.mover!=null){
