@@ -536,7 +536,7 @@ function render(){
 // ---------- Simulação ----------
 function poisson(l,rng){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=rng();}while(p>L);return k-1;}
 // Gols esperados: a diferença de força pesa bastante (divisor 7) e o mando de campo conta.
-function lambda(a,d,mando){return 1.15*Math.exp((a.att-d.def)/7)*(mando===1?1.18:mando===-1?0.86:1);}
+function lambda(a,d,mando){return 1.15*Math.exp((a.att-d.def)/AJUSTE.k)*(mando===1?1.18:mando===-1?0.86:1);}
 function marcador(players,rng){
   const w=players.map(p=>({p,w:({G:0,D:.6,M:2.5,A:5}[p.pos])*Math.pow(p.r/80,3)}));
   let t=w.reduce((s,x)=>s+x.w,0)*rng();for(const x of w){t-=x.w;if(t<=0)return x.p.name;}return w[w.length-1].p.name;
@@ -566,15 +566,17 @@ function jogar(A,B,rng,mando,final){
   return {ga,gb,gols,prorr,pen};
 }
 
+// Ajuste de força dos adversários por fase (calibrado: ~80% passa do grupo, e cada fase fica um pouco mais difícil).
+const AJUSTE={k:10,grupos:-2.7,Oitavas:-3.6,Quartas:-3.4,Semifinal:-2.5,Final:-2.5};
 function simular(){
   const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:minhaLista(),...minhaForca()};
   const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name+p.pos).join(",")+S.style):(Math.random()*4294967296)>>>0;
   const rng=mulberry32(seedSim);
   const pool=CHAMPS.map(c=>({eu:false,nome:`${c.t} ${c.y}`,players:c.players,...forcaTime(c.players)})).sort((a,b)=>a.ovr-b.ovr);
   const usados=new Set(me.players.map(p=>`${p.club} ${p.y}`));
-  const adv=(lo,hi)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
-    if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);return t;};
-  const grupo=[me,adv(.6,1),adv(.3,.7),adv(0,.4)];
+  const adv=(lo,hi,fase)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
+    if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);const a=AJUSTE[fase]||0;return {...t,att:t.att+a,def:t.def+a};};
+  const grupo=[me,adv(.6,1,"grupos"),adv(.3,.7,"grupos"),adv(0,.4,"grupos")];
   const tab=new Map(grupo.map(t=>[t,{t,j:0,v:0,e:0,d:0,gp:0,gc:0}]));
   const reg=(A,B,r)=>{const a=tab.get(A),b=tab.get(B);a.j++;b.j++;a.gp+=r.ga;a.gc+=r.gb;b.gp+=r.gb;b.gc+=r.ga;
     if(r.ga>r.gb){a.v++;b.d++;}else if(r.ga<r.gb){b.v++;a.d++;}else{a.e++;b.e++;}};
@@ -597,7 +599,7 @@ function simular(){
     const voltaEmCasa=pos===0;
     const fases=[["Oitavas","Eliminado nas oitavas",.3,1],["Quartas","Eliminado nas quartas",.45,1],["Semifinal","Eliminado na semifinal",.6,1]];
     for(const [nome,fora,lo,hi] of fases){
-      const o=adv(lo,hi);
+      const o=adv(lo,hi,nome);
       const ida=voltaEmCasa?jogar(o,me,rng,1,false):jogar(me,o,rng,1,false);
       const im=voltaEmCasa?{ga:ida.gb,gb:ida.ga}:{ga:ida.ga,gb:ida.gb};
       passos.push({jogo:{fase:`${nome} · ida`,local:voltaEmCasa?"fora":"casa",adv:o,...im,gols:ida.gols}});
@@ -610,7 +612,7 @@ function simular(){
       if(!passou){fimFase=fora;break;}
     }
     if(!fimFase){
-      const o=adv(.7,1); const r=jogar(me,o,rng,0,true);
+      const o=adv(.7,1,"Final"); const r=jogar(me,o,rng,0,true);
       const passou=r.ga>r.gb||!!(r.pen&&r.pen[0]>r.pen[1]);
       passos.push({jogo:{fase:"Final · jogo único",local:"neutro",adv:o,...r,final:true,passou}});
       if(!passou)fimFase="Vice-campeão";
