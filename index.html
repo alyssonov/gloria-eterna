@@ -598,6 +598,7 @@ function jogar(A,B,rng,mando,final){
 
 // Ajuste de força dos adversários por fase (calibrado: ~80% passa do grupo, e cada fase fica um pouco mais difícil).
 const AJUSTE={k:10,grupos:-2.7,Oitavas:-3.6,Quartas:-3.4,Semifinal:-2.5,Final:-2.5};
+const OITAVAS={primeiro:[.3,.7],segundo:[.6,1]};
 function simular(){
   const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:minhaLista(),...minhaForca()};
   const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name+p.pos).join(",")+S.style):(Math.random()*4294967296)>>>0;
@@ -627,7 +628,9 @@ function simular(){
   if(pos>1) fimFase="Eliminado na fase de grupos";
   else{
     const voltaEmCasa=pos===0;
-    const fases=[["Oitavas","Eliminado nas oitavas",.3,1],["Quartas","Eliminado nas quartas",.45,1],["Semifinal","Eliminado na semifinal",.6,1]];
+    // Como na Libertadores real: o 1º do grupo pega um 2º colocado (mais fraco) e o 2º pega um líder de grupo (mais forte).
+    const oit=voltaEmCasa?OITAVAS.primeiro:OITAVAS.segundo;
+    const fases=[["Oitavas","Eliminado nas oitavas",oit[0],oit[1]],["Quartas","Eliminado nas quartas",.45,1],["Semifinal","Eliminado na semifinal",.6,1]];
     for(const [nome,fora,lo,hi] of fases){
       const o=adv(lo,hi,nome);
       const ida=voltaEmCasa?jogar(o,me,rng,1,false):jogar(me,o,rng,1,false);
