@@ -48,8 +48,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .campo label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa)}
 select,input[type=text]{background:var(--arquibancada);border:1px solid var(--borda);border-radius:6px;padding:8px 10px;min-width:0}
 select:disabled{opacity:.55}
-.chave{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--prata);padding-top:18px}
-.chave input{accent-color:var(--ouro);width:16px;height:16px}
+.nota-modo{margin:0;align-self:center;font-size:13px;color:var(--nevoa);padding-top:18px}
 
 /* Grade principal */
 main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
@@ -196,6 +195,12 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 .modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
 .modal-titulo{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:0;line-height:1}
 .modal img{width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:6px;background:var(--noite)}
+.modal-caixa.campeao{position:relative;max-width:420px;padding:32px 44px;text-align:center;border-color:var(--ouro);background:linear-gradient(135deg,#4a3c22,#141210)}
+.campeao .modal-titulo{color:var(--ouro);font-size:34px;text-wrap:balance}
+.campeao p{margin:0}
+.campeao .acoes{justify-content:center}
+.fechar-x{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:0;border-radius:6px;color:var(--prata);font-size:28px;line-height:1;cursor:pointer}
+.fechar-x:hover{color:var(--ouro)}
 .dica:empty,.modal[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -215,8 +220,8 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
       <div class="campo"><label for="estilo">Estilo</label>
         <select id="estilo"><option value="of">Ofensivo</option><option value="eq" selected>Equilibrado</option><option value="def">Defensivo</option></select></div>
       <div class="campo"><label for="modo">Modo</label>
-        <select id="modo"><option value="livre">Livre</option><option value="dia">Desafio do dia</option></select></div>
-      <label class="chave" for="almanaque"><input type="checkbox" id="almanaque"> Almanaque (esconde a força)</label>
+        <select id="modo"><option value="amador">Amador</option><option value="almanaque">Almanaque</option></select></div>
+      <p class="nota-modo">Almanaque: esconde a força e apenas 1 pulo</p>
     </div>
   </header>
 
@@ -255,6 +260,15 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
   </section>
+
+  <div class="modal" id="modalCampeao" hidden role="dialog" aria-modal="true" aria-labelledby="t-campeao">
+    <div class="modal-caixa campeao">
+      <button class="fechar-x" id="btnNovaCarreira" aria-label="Fechar e começar uma nova carreira">×</button>
+      <h2 class="modal-titulo" id="t-campeao">Parabéns! Você conquistou a Glória Eterna</h2>
+      <p id="campeaoTime"></p>
+      <div class="acoes"><button class="btn" id="btnVerCampanha">Ver campanha</button></div>
+    </div>
+  </div>
 
   <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="t-modal">
     <div class="modal-caixa">
@@ -353,8 +367,6 @@ const LENDA=90;
 
 // RNG
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
-function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return h>>>0;}
-function hoje(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const reduz=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -389,15 +401,14 @@ const VEL_MIN=90;
 
 const S={};
 function novoJogo(){
-  S.formation=$("formacao").value; S.style=$("estilo").value; S.mode=$("modo").value;
-  S.alm=$("almanaque").checked; S.revelar=false;
+  S.formation=$("formacao").value; S.style=$("estilo").value;
+  S.alm=$("modo").value==="almanaque"; S.revelar=false;
   const f=FORM[S.formation];
   S.slots=[{pos:"G",player:null}];
   ["D","M","A"].forEach(p=>{for(let k=0;k<f[p];k++)S.slots.push({pos:p,player:null});});
   S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
-  S.seed=S.mode==="dia"?hashStr("gloria-"+hoje()):(Math.random()*4294967296)>>>0;
-  S.rng=mulberry32(S.seed);
+  S.rng=mulberry32((Math.random()*4294967296)>>>0);
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
   render();
 }
@@ -491,7 +502,7 @@ function entrosamento(ps){
 
 function render(){
   const travado=S.picks>0;
-  ["formacao","modo","almanaque"].forEach(id=>$(id).disabled=travado);
+  ["formacao","modo"].forEach(id=>$(id).disabled=travado);
   // alvos destacados no campo
   let mapa=new Map();
   if(S.sel!=null&&S.current)alvos(S.current.players[S.sel],null).forEach(a=>mapa.set(a.i,a));
@@ -535,7 +546,7 @@ function render(){
   $("btnRolar").disabled=S.anim||cheio||!!S.current;
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=`Trocar sorteio (${S.trocas})`;
-  $("trocas").textContent=S.mode==="dia"?"Desafio de "+hoje().split("-").reverse().join("/"):"Modo livre";
+  $("trocas").textContent=S.alm?"Modo almanaque":"Modo amador";
   // sorteado
   const box=$("sorteado");
   if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Ainda dá para trocar jogadores de posição no campo. Depois, dispute a Libertadores.</div>`;return;}
@@ -660,7 +671,7 @@ const OITAVAS={primeiro:[.3,.7],segundo:[.6,1]};
 // A Copa anda jogo a jogo: sim.avancar() entrega o próximo jogo do seu time (resolvendo o anterior, se ficou pendente).
 function simular(){
   const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:minhaLista(),...minhaForca()};
-  const seedSim=S.mode==="dia"?hashStr(S.seed+":"+me.players.map(p=>p.name+p.pos).join(",")+S.style):(Math.random()*4294967296)>>>0;
+  const seedSim=(Math.random()*4294967296)>>>0;
   const rng=mulberry32(seedSim);
   const pool=CHAMPS.map(c=>({eu:false,nome:`${c.t} ${c.y}`,players:c.players,...forcaTime(c.players)})).sort((a,b)=>a.ovr-b.ovr);
   const usados=new Set(me.players.map(p=>`${p.club} ${p.y}`));
@@ -948,10 +959,13 @@ function fimCopa(){
   $("veredito").innerHTML=htmlVeredito(sim);
   $("veredito").scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});
   if(S.alm){S.revelar=true;render();}
-  $("btnDenovo").onclick=()=>{novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});};
+  $("btnDenovo").onclick=novaCarreira;
   $("btnMesmo").onclick=()=>mostrar(simular());
   $("btnCompartilhar").onclick=()=>abrirCompartilhar(sim);
+  if(!sim.fimFase){$("campeaoTime").textContent=`${sim.me.nome} levantou a taça da Libertadores.`;$("modalCampeao").hidden=false;$("btnNovaCarreira").focus();}
 }
+function novaCarreira(){$("modalCampeao").hidden=true;novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});}
+function verCampanha(){$("modalCampeao").hidden=true;$("btnDenovo").focus();}
 
 // ---------- Imagem da campanha ----------
 const SITE="alyssonov.github.io/gloria-eterna";
@@ -1072,6 +1086,10 @@ $("btnFechar").onclick=fecharModal;
 $("modal").onclick=e=>{if(e.target===$("modal"))fecharModal();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)fecharModal();});
 
+$("btnNovaCarreira").onclick=novaCarreira;
+$("btnVerCampanha").onclick=verCampanha;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modalCampeao").hidden)verCampanha();});
+
 $("btnRolar").onclick=()=>sortear(false);
 $("btnTrocar").onclick=()=>sortear(true);
 $("btnRecomecar").onclick=novoJogo;
@@ -1079,7 +1097,7 @@ $("btnSimular").onclick=()=>{S.sel=null;S.mover=null;render();mostrar(simular())
 $("btnProximo").onclick=proximo;
 $("btnPular").onclick=simularResto;
 $("jogos").addEventListener("click",e=>{const b=e.target.closest("[data-bat]");if(b)escolherBatedor(+b.dataset.bat);});
-$("formacao").onchange=novoJogo; $("modo").onchange=novoJogo; $("almanaque").onchange=novoJogo;
+$("formacao").onchange=novoJogo; $("modo").onchange=novoJogo;
 $("estilo").onchange=()=>{S.style=$("estilo").value;render();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.sel!=null||S.mover!=null)){S.sel=null;S.mover=null;render();}});
 novoJogo();
