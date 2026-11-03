@@ -129,7 +129,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
 .nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
 .nota.lenda{color:var(--ouro)}
-.vazio{border:1px dashed var(--borda);border-radius:8px;padding:22px;text-align:center;color:var(--nevoa)}
+.vazio{padding:22px;text-align:center;color:var(--nevoa)}
 
 /* Simulação */
 #simulacao[hidden]{display:none}
@@ -243,11 +243,11 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 
     <section class="painel" aria-labelledby="t-sorteio" id="painelSorteio">
       <div class="titulo-painel"><h2 id="t-sorteio">Sorteio</h2><span class="contador" id="trocas"></span></div>
-      <p class="rotulo">Base do troféu · campeões de 1960 a 2025</p>
+      <p class="rotulo">Todos os campeões da Libertadores</p>
       <div class="base" id="base" aria-hidden="true"></div>
       <div class="acoes">
         <button class="btn principal" id="btnRolar">Sortear campeão</button>
-        <button class="btn" id="btnTrocar">Trocar sorteio</button>
+        <button class="btn" id="btnTrocar">Trocar campeão</button>
       </div>
       <div id="sorteado"></div>
     </section>
@@ -545,15 +545,14 @@ function render(){
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current;
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
-  $("btnTrocar").textContent=`Trocar sorteio (${S.trocas})`;
+  $("btnTrocar").textContent=`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.alm?"Modo almanaque":"Modo amador";
   // sorteado
   const box=$("sorteado");
   if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Ainda dá para trocar jogadores de posição no campo. Depois, dispute a Libertadores.</div>`;return;}
   if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
   if(!S.current){
-    const falta=["G","D","M","A"].map(p=>{const n=S.slots.filter(s=>s.pos===p&&!s.player).length;return n?`${n} ${POS[p]}`:null;}).filter(Boolean).join(" · ");
-    box.innerHTML=`<div class="vazio">Sorteie um campeão e escolha um jogador daquele elenco.<br><span class="contador">Faltam: ${falta}</span></div>`;return;
+    box.innerHTML=`<div class="vazio">Sorteie um campeão e escolha um jogador daquele elenco.</div>`;return;
   }
   const c=S.current;
   const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||b.p.r-a.p.r);
