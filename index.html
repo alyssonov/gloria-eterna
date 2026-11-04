@@ -203,6 +203,14 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 .fechar-x{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:0;border-radius:6px;color:var(--prata);font-size:28px;line-height:1;cursor:pointer}
 .fechar-x:hover{color:var(--ouro)}
 .dica:empty,#sorteado:empty,.modal[hidden]{display:none}
+@media (max-width:860px){
+  .marca{width:100%}
+  .marca p,footer{max-width:none;text-align:justify}
+  .ajustes{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}
+  .ajustes .campo:first-child,.nota-modo{grid-column:1/-1}
+  .ajustes select,.ajustes input{width:100%}
+  .nota-modo{padding-top:0}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
