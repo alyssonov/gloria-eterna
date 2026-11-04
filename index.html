@@ -216,6 +216,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .aviso.bom{border-left-color:var(--vitoria)}
 .aviso.ruim{border-left-color:var(--derrota)}
 .batedores{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
+@media (max-width:860px){.batedores{grid-template-columns:repeat(2,minmax(0,1fr))}.batedores .bat{padding:6px 8px}}
 .bat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:6px;border:1px solid var(--borda);background:var(--arquibancada);color:var(--prata);font:inherit;font-weight:600;cursor:pointer}
 .bat small{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--nevoa)}
 .disputa .disputa{margin:0;padding:0;border:0}
@@ -319,6 +320,7 @@ footer{color:var(--nevoa);font-size:12.5px}
       <div class="acoes">
         <button class="btn principal" id="btnRolar">Sortear campeão</button>
         <button class="btn" id="btnTrocar">Trocar campeão</button>
+        <button class="btn" id="btnAleatorio">Montar time aleatório</button>
       </div>
       <div id="sorteado"></div>
     </section>
@@ -517,7 +519,7 @@ function novoJogo(){
   S.alm=$("modo").value==="tecnico"; S.presidente=$("modo").value==="presidente"; S.din=ORCAMENTO;
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
   S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.presidente?Infinity:S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.campanha=false; S.anim=false; S.ultimo=-1;
-  S.sel=null; S.mover=null;
+  S.sel=null; S.mover=null; S.aleatorio=false;
   S.rng=mulberry32((Math.random()*4294967296)>>>0);
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
   render();
@@ -567,6 +569,32 @@ function sortear(gasta){
     else{S.anim=false;S.drawn.add(alvo.i);S.current=alvo;render();rolaCelular($("sorteado"),"start");}
   };
   tick();
+}
+
+// Time aleatório: todos na posição de origem e média dentro da faixa, nem fraco demais nem forte demais.
+const ALEATORIO_MIN=84.5, ALEATORIO_MAX=85.5;
+function sorteiaTime(){
+  const elencos=CHAMPS.flatMap(c=>c.players.map(p=>({p,c})));
+  const media=t=>t.reduce((a,x)=>a+x.p.r,0)/t.length;
+  const fora=d=>{const m=media(d);return m<ALEATORIO_MIN?ALEATORIO_MIN-m:m>ALEATORIO_MAX?m-ALEATORIO_MAX:0;};
+  const pega=(pos,time,i)=>{const op=elencos.filter(x=>x.p.pos===pos&&!time.some((y,j)=>j!==i&&y&&y.p.name===x.p.name));return op[Math.floor(S.rng()*op.length)];};
+  for(;;){
+    const time=[]; S.slots.forEach((s,i)=>{time[i]=pega(s.pos,time,i);});
+    for(let n=0;n<2000&&fora(time)>0;n++){
+      const i=Math.floor(S.rng()*time.length), velho=time[i], antes=fora(time);
+      time[i]=pega(S.slots[i].pos,time,i);
+      if(fora(time)>antes)time[i]=velho;
+    }
+    if(fora(time)===0&&(!S.presidente||time.reduce((a,x)=>a+preco(x.p.r),0)<=ORCAMENTO))return time;
+  }
+}
+function montarAleatorio(){
+  if(S.anim||S.campanha||(S.picks&&!S.aleatorio))return;
+  if(!$("nomeTime").value.trim())$("nomeTime").value="Time Aleatório";
+  novoJogo();
+  sorteiaTime().forEach(({p,c},i)=>{S.slots[i].player={...p,club:c.t,y:c.y};S.used.add(p.name);S.drawn.add(c.i);if(S.presidente)S.din-=preco(p.r);});
+  S.picks=S.slots.length; S.iniciado=true; S.aleatorio=true;
+  render(); rolaCelular($("btnSimular"),"center");
 }
 
 function selecionar(idx){
@@ -680,6 +708,7 @@ function render(){
   // botões
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
+  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio);
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.presidente?`Saldo ${reais(S.din)}`:S.alm?"Modo técnico":"Modo torcedor";
@@ -1033,7 +1062,7 @@ function htmlVeredito(sim){
   return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
     <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Defesa <b>${Math.round(f.def)}</b></span><span>Ataque <b>${Math.round(f.att)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span></div>
-    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">${campeao?"Defender cinturão":"Mesmo time, nova Copa"}</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
+    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">${campeao?"Defender título":"Mesmo time, nova Copa"}</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
 }
 
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
@@ -1073,7 +1102,7 @@ function rodar(){
   },dur/VEL_MIN);
 }
 const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900;
-const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true}); rolaCelular(document.querySelector(`#${a.id} .disputa`),"nearest");};
+const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true}); rolaCelular(document.querySelector(`#${a.id} .disputa`),"center");};
 function pedirPen(){
   const a=S.atual, p=proxPen(a); a.pen=p; a.escolhendo=true; a.batedor=p.meu?null:p.batedor;
   desenhaVivo(a,p.meu?htmlEscolha(p,S.sim.me):htmlCanto(p,p.batedor,a.p.jogo,S.sim.me));
@@ -1301,6 +1330,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modalCampeao").
 
 $("btnRolar").onclick=()=>sortear(false);
 $("btnTrocar").onclick=()=>sortear(true);
+$("btnAleatorio").onclick=montarAleatorio;
 // Celular: "Trocar campeão" fica logo abaixo do elenco sorteado.
 const telaCelular=matchMedia("(max-width:860px)");
 const posTrocar=()=>{if(telaCelular.matches)$("sorteado").after($("btnTrocar"));else $("btnRolar").after($("btnTrocar"));};
