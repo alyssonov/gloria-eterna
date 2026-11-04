@@ -554,6 +554,18 @@ function forcaTime(players){
   const m=k=>by[k].length?by[k].reduce((a,b)=>a+b,0)/by[k].length:avgAll-3;
   return {att:0.55*m("A")+0.35*m("M")+0.10*m("D"), def:0.45*m("D")+0.30*m("G")+0.25*m("M"), ovr:avgAll, gk:m("G")};
 }
+// Time incompleto: conta só quem já foi escalado, com os mesmos pesos da força final. Sem atacante ou meia não há nota de ataque; sem goleiro, defensor ou meia, não há nota de defesa.
+function forcaParcial(ps){
+  const by={G:[],D:[],M:[],A:[]}; ps.forEach(p=>by[SETOR[p.pos]].push(p.r));
+  const nota=(pesos,base)=>{
+    if(!base.some(k=>by[k].length))return null;
+    let soma=0,total=0;
+    for(const k in pesos)if(by[k].length){soma+=pesos[k]*by[k].reduce((a,b)=>a+b,0)/by[k].length;total+=pesos[k];}
+    return soma/total;
+  };
+  return {att:nota({A:.55,M:.35,D:.10},["A","M"]),def:nota({D:.45,G:.30,M:.25},["D","G","M"])};
+}
+function forcaExibida(){const f=minhaForca(); return f&&!completo()?{...f,...forcaParcial(minhaLista())}:f;}
 function minhaForca(){
   const ps=minhaLista(); if(!ps.length)return null;
   const f=forcaTime(ps);
@@ -607,8 +619,8 @@ function render(){
   else if(S.picks)dica=`Selecione um jogador para mudar a posição.<br>${BORDA}`;
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   $("avisoFechado").hidden=!completo()||S.campanha;
-  const f=minhaForca();
-  $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${Math.round(f.def)}</b></span><span>Ataque <b>${Math.round(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
+  const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
+  $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
      :(escondido()?`<span>Modo profissional: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
   $("btnSimular").disabled=!completo()||S.campanha;
   ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
