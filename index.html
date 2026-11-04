@@ -133,6 +133,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
 .nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
 .nota.lenda{color:var(--ouro)}
+#trocas{word-spacing:-.3em}
 .vazio{padding:22px;text-align:center;color:var(--nevoa)}
 
 /* Simulação */
@@ -541,7 +542,7 @@ function render(){
       const o={s,i}, pos=s.pos;
       const el=document.createElement("button"); const p=o.s.player; const a=mapa.get(o.i);
       el.type="button"; el.dataset.s=o.i;
-      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA?" lenda":"")+(p&&p.pos!==pos?" improv":"")+(o.i===S.ultimo?" nova":"")+(a?" alvo":"")+(S.mover===o.i?" movendo":"");
+      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA&&!escondido()?" lenda":"")+(p&&p.pos!==pos?" improv":"")+(o.i===S.ultimo?" nova":"")+(a?" alvo":"")+(S.mover===o.i?" movendo":"");
       el.style.left=desenho[i][0]+"%"; el.style.top=desenho[i][1]+"%";
       const tag=a&&a.tipo==="troca"?`<span class="tag">trocar</span>`:a&&a.tipo==="empurra"?`<span class="tag">vai p/ ${POS[S.slots[a.dest].pos]}</span>`:"";
       el.innerHTML=p?`<span class="bola"${escondido()?' style="font-size:12px"':""}>${escondido()?POS[pos]:efetiva(o.s)}</span><span class="nome">${esc(p.name)}</span><span class="origem">${esc(p.club)} ${String(p.y).slice(2)}</span>${tag}`
@@ -581,14 +582,14 @@ function render(){
     box.innerHTML="";return;
   }
   const c=S.current;
-  const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||b.p.r-a.p.r);
+  const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||(escondido()?0:b.p.r-a.p.r));
   const algum=c.players.some(elegivel);
   box.innerHTML=`<div class="sorteado">
     <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${c.c} · campeão da Libertadores</div></div></div>
     ${algum?`<p class="dica">Escolha um jogador e depois a vaga no campo.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas, nem mudando alguém de posição. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
       const motivo=S.used.has(p.name)?"já escalado":(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
-      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${escondido()?"··":p.r}</span></button>`;}).join("")}</div></div>`;
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
@@ -661,7 +662,7 @@ function jogar(A,B,rng,mando,final){
   ["a","b"].forEach(l=>{
     if(rng()>=CHANCE_PENALTI)return;
     const X=lados[l], Y=lados[outro[l]], m=entre(1,90,rng), u=rng(), fx=fora(l,m);
-    const opcoes=X.players.filter(p=>!(fx&&fx.has(p.name))).sort((a,b)=>notaPen(b)-notaPen(a));
+    const opcoes=X.players.filter(p=>!(fx&&fx.has(p.name))).sort((a,b)=>escondido()?0:notaPen(b)-notaPen(a));
     const pen={m,u,lado:l,gk:Y.gk||80,opcoes,meu:!!X.eu};
     if(X.eu)r.pendente=pen; else cobrar(r,pen,melhorBatedor(opcoes));
   });
