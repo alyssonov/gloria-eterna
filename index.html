@@ -589,8 +589,7 @@ function sorteiaTime(){
   }
 }
 function montarAleatorio(){
-  if(S.anim||S.campanha||(S.picks&&!S.aleatorio))return;
-  if(!$("nomeTime").value.trim())$("nomeTime").value="Time Aleatório";
+  if(S.anim||S.campanha||(S.picks&&!S.aleatorio)||!$("nomeTime").value.trim())return;
   novoJogo();
   sorteiaTime().forEach(({p,c},i)=>{S.slots[i].player={...p,club:c.t,y:c.y};S.used.add(p.name);S.drawn.add(c.i);if(S.presidente)S.din-=preco(p.r);});
   S.picks=S.slots.length; S.iniciado=true; S.aleatorio=true;
@@ -708,7 +707,7 @@ function render(){
   // botões
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
-  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||(matchMedia("(max-width:860px)").matches&&!$("nomeTime").value.trim());
+  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.presidente?`Saldo ${reais(S.din)}`:S.alm?"Modo técnico":"Modo torcedor";
