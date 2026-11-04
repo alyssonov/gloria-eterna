@@ -235,6 +235,11 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .campanha .v{background:var(--vitoria);color:#0b2a17}.campanha .e{background:var(--empate);color:#1b1e2c}.campanha .d{background:var(--derrota);color:#3a0d08}
 
 footer{color:var(--nevoa);font-size:12.5px}
+.redes{display:flex;align-items:center;gap:2px;margin:14px 0 0;font-size:14px;color:var(--prata)}
+.redes a{display:inline-flex;padding:6px;margin:-6px 0;color:inherit}
+.redes a:first-child{margin-left:-6px}
+.redes a:hover{color:var(--ouro)}
+.redes svg{width:18px;height:18px;display:block}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);display:grid;place-items:center;overflow:auto;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
@@ -336,7 +341,9 @@ footer{color:var(--nevoa);font-size:12.5px}
     </div>
   </div>
 
-  <footer>Os elencos trazem os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis. Em qualquer jogo pode haver expulsão, que dá ao outro time 10% mais chance de gol, e pênalti a favor; quando o pênalti é do seu time, você escolhe quem bate e o canto; quando é contra, escolhe para onde o goleiro pula. Nas disputas de pênaltis, você escolhe o canto em todas as cobranças.</footer>
+  <footer>Os elencos trazem os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis. Em qualquer jogo pode haver expulsão, que dá ao outro time 10% mais chance de gol, e pênalti a favor; quando o pênalti é do seu time, você escolhe quem bate e o canto; quando é contra, escolhe para onde o goleiro pula. Nas disputas de pênaltis, você escolhe o canto em todas as cobranças.
+    <p class="redes"><a href="https://www.instagram.com/alyssonov" target="_blank" rel="noopener" aria-label="Instagram de alyssonov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg></a><span aria-hidden="true">|</span><a href="https://x.com/alyssonov" target="_blank" rel="noopener" aria-label="X (Twitter) de alyssonov"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a><span>@alyssonov</span></p>
+  </footer>
 </div>
 
 <script>
