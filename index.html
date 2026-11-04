@@ -991,7 +991,7 @@ function htmlVeredito(sim){
   return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
     <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Defesa <b>${Math.round(f.def)}</b></span><span>Ataque <b>${Math.round(f.att)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span></div>
-    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">Mesmo time, nova Copa</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
+    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">${campeao?"Defender cinturão":"Mesmo time, nova Copa"}</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
 }
 
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
