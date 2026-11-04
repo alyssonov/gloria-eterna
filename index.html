@@ -93,10 +93,11 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .vaga.alvo{z-index:2}
 .vaga.alvo .bola{border:2px solid var(--ouro);box-shadow:0 0 0 4px rgba(229,170,55,.45);animation:pulsa 1.1s ease-in-out infinite}
 .vaga.alvo:not(.cheia) .bola{background:rgba(229,170,55,.3)}
-.vaga.alvo.fora .bola{border:3px dashed var(--ouro);box-shadow:none}
+.vaga.alvo.fora .bola{border:3px dashed var(--noite);outline:2px solid var(--ouro);box-shadow:none}
+.vaga.alvo.fora:not(.cheia) .bola{background:rgba(229,170,55,.6)}
 .vaga.movendo .bola{box-shadow:0 0 0 4px #fff}
 .vaga.cheia.improv .bola{border:2px dashed var(--noite);outline:2px solid var(--prata)}
-.vaga.cheia.lenda.improv .bola{outline-color:var(--ouro)}
+.vaga.cheia.lenda.improv .bola{border-color:var(--noite);outline-color:var(--ouro)}
 .vaga .tag{font-family:var(--mono);font-size:9.5px;background:var(--ouro);color:#22190a;border-radius:3px;padding:0 4px;white-space:nowrap}
 @keyframes pulsa{50%{transform:scale(1.1)}}
 .dica-campo{font-size:13px;margin:0;padding:8px 10px;border-radius:6px;background:var(--noite);border:1px solid var(--borda);color:var(--nevoa)}
@@ -615,7 +616,7 @@ function render(){
   $("trocas").textContent=S.alm?"Modo raiz":"Modo nutella";
   // sorteado
   const box=$("sorteado");
-  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Ainda dá para trocar jogadores de posição no campo. Depois, dispute a Libertadores.</div>`;return;}
+  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</div>`;return;}
   if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
   if(!S.current){
     box.innerHTML="";return;
@@ -886,7 +887,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
 }
 function htmlLances(gs,evs,vivo){
   const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
-    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido${e.meu?" meu":""}">${e.m}' ${esc(e.quem)} perdeu pênalti</span>`}))]
+    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido${e.meu?" meu":""}">${e.m}' ${esc(e.quem)} (pênalti perdido)</span>`}))]
     .sort((a,b)=>ordMin(a.m)-ordMin(b.m));
   if(!it.length)return `<span>${vivo?"Bola rolando":"Sem gols"}</span>`;
   if(!gs.length&&!vivo)it.unshift({h:"<span>Sem gols</span>"});
