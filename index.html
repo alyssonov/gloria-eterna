@@ -155,6 +155,8 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
 .nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
 .nota.lenda{color:var(--ouro)}
+.jog .nota{text-align:right}
+.preco{display:block;font-size:11px;color:var(--prata);white-space:nowrap}
 #trocas{word-spacing:-.3em}
 .vazio{padding:22px;text-align:center;color:var(--nevoa)}
 
@@ -279,8 +281,8 @@ footer{color:var(--nevoa);font-size:12.5px}
       <div class="campo"><label for="estilo">Estilo</label>
         <select id="estilo"><option value="of">Ofensivo</option><option value="eq" selected>Equilibrado</option><option value="def">Defensivo</option></select></div>
       <div class="campo"><label for="modo">Modo</label>
-        <select id="modo"><option value="amador">Amador</option><option value="profissional">Profissional</option></select></div>
-      <p class="nota-modo">Profissional: esconde a força e apenas 1 troca</p>
+        <select id="modo"><option value="amador">Amador</option><option value="profissional">Profissional</option><option value="mercado">Mercado</option></select></div>
+      <p class="nota-modo">Profissional: esconde a força e apenas 1 troca<br>Mercado: compre os 11 com R$ 700 mi e trocas livres</p>
     </div>
   </header>
 
@@ -481,12 +483,31 @@ const pode=(p,pos)=>p.todas.includes(pos)||(SETOR[p.pos]==="D"&&SETOR[pos]==="D"
 const efetiva=s=>s.player.r-(s.player.pos===s.pos?0:2);
 const VEL_MIN=90;
 
+// Modo Mercado: o preço cresce depressa com a nota.
+const ORCAMENTO=700;
+const preco=r=>Math.max(3,Math.round(15*Math.pow(1.114,r-75)));
+const reais=v=>`R$ ${v} mi`;
+const PELO_PRECO=CHAMPS.flatMap(c=>c.players).sort((a,b)=>a.r-b.r);
+// Quanto custa, no mínimo, completar as vagas dadas. Sempre monta um time possível: quem comprar respeitando essa reserva nunca fica sem dinheiro.
+function reserva(vagas,comprado){
+  const fora=new Set(S.used); fora.add(comprado); let total=0;
+  for(const i of vagas){
+    const q=PELO_PRECO.find(x=>!fora.has(x.name)&&pode(x,S.slots[i].pos));
+    if(!q)return Infinity;
+    fora.add(q.name); total+=preco(q.r);
+  }
+  return total;
+}
+function reservaApos(p,a){
+  const ocupa=a.tipo==="livre"?a.i:a.dest;
+  return reserva(S.slots.map((s,i)=>i).filter(i=>!S.slots[i].player&&i!==ocupa),p.name);
+}
 const S={};
 function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value;
-  S.alm=$("modo").value==="profissional";
+  S.alm=$("modo").value==="profissional"; S.mercado=$("modo").value==="mercado"; S.din=ORCAMENTO;
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
-  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.campanha=false; S.anim=false; S.ultimo=-1;
+  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.mercado?Infinity:S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.campanha=false; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
   S.rng=mulberry32((Math.random()*4294967296)>>>0);
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
@@ -496,7 +517,7 @@ const escondido=()=>S.alm&&!completo();
 function completo(){return S.slots.every(s=>s.player);}
 
 // Para onde um jogador pode ir. origem = índice da vaga de onde ele sai (null para jogador recém-sorteado).
-function alvos(p,origem){
+function alvosSemDinheiro(p,origem){
   const livres=[],outros=[];
   S.slots.forEach((s,i)=>{
     if(i===origem||!pode(p,s.pos))return;
@@ -508,15 +529,25 @@ function alvos(p,origem){
   if(origem==null)return livres.length?livres:outros;
   return livres.concat(outros);
 }
+function alvos(p,origem){
+  const a=alvosSemDinheiro(p,origem);
+  return S.mercado&&origem==null?a.filter(x=>preco(p.r)+reservaApos(p,x)<=S.din):a;
+}
 function elegivel(p){return !S.used.has(p.name)&&alvos(p,null).length>0;}
 
 const rolaCelular=(el,block)=>{if(el&&matchMedia("(max-width:860px)").matches)el.scrollIntoView({behavior:reduz?"auto":"smooth",block});};
+// No Mercado as trocas são infinitas: só vêm elencos com alguém que dá para comprar e, quando acabam, os campeões voltam ao sorteio.
+function proximoCampeao(){
+  const serve=c=>!S.mercado||c.players.some(elegivel);
+  let cand=CHAMPS.filter(c=>!S.drawn.has(c.i)&&serve(c));
+  if(!cand.length&&S.mercado){S.drawn.clear();cand=CHAMPS.filter(c=>c!==S.current&&serve(c));if(!cand.length)cand=[S.current];}
+  return cand[Math.floor(S.rng()*cand.length)];
+}
 function sortear(gasta){
   if(S.anim||completo())return;
   if(gasta){if(S.trocas<=0)return;S.trocas--;}
   S.iniciado=true;
-  const cand=CHAMPS.filter(c=>!S.drawn.has(c.i));
-  const alvo=cand[Math.floor(S.rng()*cand.length)];
+  const alvo=proximoCampeao();
   S.current=null; S.sel=null; S.mover=null;
   if(reduz){S.drawn.add(alvo.i);S.current=alvo;render();rolaCelular($("sorteado"),"start");return;}
   S.anim=true; render();
@@ -541,6 +572,7 @@ function cliqueVaga(i){
     const c=S.current,p=c.players[S.sel];
     const a=alvos(p,null).find(x=>x.i===i); if(!a)return;
     if(a.tipo==="empurra"){S.slots[a.dest].player=s.player;}
+    if(S.mercado)S.din-=preco(p.r);
     s.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.sel=null; S.picks++; S.ultimo=i;
     setTimeout(()=>{if(completo())rolaCelular($("btnSimular"),"center");else rolaCelular($("painelSorteio"),"start");},450);
     render(); return;
@@ -622,14 +654,14 @@ function render(){
   // dica do campo
   const BORDA="Borda tracejada: jogando fora da posição de origem (−2 de força).";
   let dica="";
-  if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"")+`<br>${BORDA}`;}
+  if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>${S.mercado?` por ${reais(preco(p.r))}`:""}.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"")+`<br>${BORDA}`;}
   else if(S.mover!=null){const p=S.slots[S.mover].player;dica=`Mover <b>${esc(p.name)}</b> (${posTxt(p)}): toque numa vaga destacada. Toque nele de novo para cancelar.<br>${BORDA}`;}
   else if(S.picks)dica=`Selecione um jogador para mudar a posição.<br>${BORDA}`;
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   $("avisoFechado").hidden=!completo()||S.campanha;
   const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
-  $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
-     :(escondido()?`<span>Modo profissional: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
+  $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>${S.mercado?`<span>Saldo <b>${reais(S.din)}</b></span>`:""}`
+     :(escondido()?`<span>Modo profissional: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>${S.mercado?`Você tem ${reais(S.din)} para comprar os 11 jogadores.`:"Sorteie um campeão para escalar o primeiro jogador."}</span>`);
   $("btnSimular").disabled=!completo()||S.campanha;
   ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
   // base
@@ -640,8 +672,8 @@ function render(){
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
-  $("btnTrocar").textContent=`Trocar campeão (${S.trocas})`;
-  $("trocas").textContent=S.alm?"Modo profissional":"Modo amador";
+  $("btnTrocar").textContent=S.mercado?"Trocar campeão":`Trocar campeão (${S.trocas})`;
+  $("trocas").textContent=S.mercado?`Saldo ${reais(S.din)}`:S.alm?"Modo profissional":"Modo amador";
   // sorteado
   const box=$("sorteado");
   if(cheio){box.innerHTML=`<div class="vazio so-desktop">Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</div>`;return;}
@@ -656,8 +688,9 @@ function render(){
     <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${PAISES[c.c]}</div></div></div>
     ${algum?`<p class="dica">Escolha um jogador e depois a vaga no campo.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas, nem mudando alguém de posição. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
-      const motivo=S.used.has(p.name)?"já escalado":(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
-      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
+      const semDinheiro=S.mercado&&!ok&&!S.used.has(p.name)&&alvosSemDinheiro(p,null).length>0, resta=S.slots.filter(s=>!s.player).length-1;
+      const motivo=S.used.has(p.name)?"já escalado":semDinheiro?(resta?`guarde dinheiro para ${resta===1?"a outra vaga":`as outras ${resta} vagas`}`:"sem dinheiro"):(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${escondido()?"?":p.r}${S.mercado?`<small class="preco">${reais(preco(p.r))}</small>`:""}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
