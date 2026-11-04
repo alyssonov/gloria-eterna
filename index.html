@@ -93,6 +93,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .vaga.alvo{z-index:2}
 .vaga.alvo .bola{border:2px solid var(--ouro);box-shadow:0 0 0 4px rgba(229,170,55,.45);animation:pulsa 1.1s ease-in-out infinite}
 .vaga.alvo:not(.cheia) .bola{background:rgba(229,170,55,.3)}
+.vaga.alvo.fora .bola{border:3px dashed var(--ouro);box-shadow:none}
 .vaga.movendo .bola{box-shadow:0 0 0 4px #fff}
 .vaga.cheia.improv .bola{border:2px dashed var(--noite);outline:2px solid var(--prata)}
 .vaga.cheia.lenda.improv .bola{outline-color:var(--ouro)}
@@ -494,6 +495,7 @@ function alvos(p,origem){
 }
 function elegivel(p){return !S.used.has(p.name)&&alvos(p,null).length>0;}
 
+const rolaCelular=(el,block)=>{if(el&&matchMedia("(max-width:860px)").matches)el.scrollIntoView({behavior:reduz?"auto":"smooth",block});};
 function sortear(gasta){
   if(S.anim||completo())return;
   if(gasta){if(S.trocas<=0)return;S.trocas--;}
@@ -501,13 +503,13 @@ function sortear(gasta){
   const cand=CHAMPS.filter(c=>!S.drawn.has(c.i));
   const alvo=cand[Math.floor(S.rng()*cand.length)];
   S.current=null; S.sel=null; S.mover=null;
-  if(reduz){S.drawn.add(alvo.i);S.current=alvo;render();return;}
+  if(reduz){S.drawn.add(alvo.i);S.current=alvo;render();rolaCelular($("sorteado"),"start");return;}
   S.anim=true; render();
   const placas=[...$("base").children]; let n=0; const total=14;
   const tick=()=>{
     placas.forEach(p=>p.classList.remove("acesa"));
     if(n<total){placas[Math.floor(Math.random()*placas.length)].classList.add("acesa");n++;S.timer=setTimeout(tick,45+n*6);}
-    else{S.anim=false;S.drawn.add(alvo.i);S.current=alvo;render();}
+    else{S.anim=false;S.drawn.add(alvo.i);S.current=alvo;render();rolaCelular($("sorteado"),"start");}
   };
   tick();
 }
@@ -525,7 +527,7 @@ function cliqueVaga(i){
     const a=alvos(p,null).find(x=>x.i===i); if(!a)return;
     if(a.tipo==="empurra"){S.slots[a.dest].player=s.player;}
     s.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.sel=null; S.picks++; S.ultimo=i;
-    if(matchMedia("(max-width:860px)").matches&&!completo()){setTimeout(()=>{const r=$("painelSorteio").getBoundingClientRect();if(r.top<0||r.top>innerHeight*.5)$("painelSorteio").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});},450);}
+    setTimeout(()=>{if(completo())rolaCelular($("btnSimular"),"center");else rolaCelular($("painelSorteio"),"start");},450);
     render(); return;
   }
   if(S.mover!=null){
@@ -571,13 +573,14 @@ function render(){
   let mapa=new Map();
   if(S.sel!=null&&S.current)alvos(S.current.players[S.sel],null).forEach(a=>mapa.set(a.i,a));
   else if(S.mover!=null)alvos(S.slots[S.mover].player,S.mover).forEach(a=>mapa.set(a.i,a));
+  const emMaos=S.sel!=null&&S.current?S.current.players[S.sel]:S.mover!=null?S.slots[S.mover].player:null;
   const g=$("gramado"); g.querySelectorAll(".vaga").forEach(e=>e.remove());
   const desenho=[[50,90],...DESENHO[S.formation][S.style]];
   S.slots.forEach((s,i)=>{
       const o={s,i}, pos=s.pos;
       const el=document.createElement("button"); const p=o.s.player; const a=mapa.get(o.i);
       el.type="button"; el.dataset.s=o.i;
-      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA&&!escondido()?" lenda":"")+(p&&p.pos!==pos?" improv":"")+(o.i===S.ultimo?" nova":"")+(a?" alvo":"")+(S.mover===o.i?" movendo":"");
+      el.className="vaga"+(p?" cheia":"")+(p&&p.r>=LENDA&&!escondido()?" lenda":"")+(p&&p.pos!==pos?" improv":"")+(o.i===S.ultimo?" nova":"")+(a?" alvo":"")+(a&&emMaos.pos!==pos?" fora":"")+(S.mover===o.i?" movendo":"");
       el.style.left=desenho[i][0]+"%"; el.style.top=desenho[i][1]+"%";
       const tag=a&&a.tipo==="troca"?`<span class="tag">trocar</span>`:a&&a.tipo==="empurra"?`<span class="tag">vai p/ ${POS[S.slots[a.dest].pos]}</span>`:"";
       el.innerHTML=p?`<span class="bola"${escondido()?' style="font-size:12px"':""}>${escondido()?POS[pos]:efetiva(o.s)}</span><span class="nome">${esc(p.name)}</span><span class="origem">${esc(p.club)} ${String(p.y).slice(2)}</span>${tag}`
@@ -637,6 +640,8 @@ function lambda(a,d,mando){return 1.15*Math.exp((a.att-d.def)/AJUSTE.k)*(mando==
 // Lances do jogo: cada time tem 5% de chance de ter um expulso; depois da expulsão o outro time tem 10% mais chance de gol.
 // Cada time tem 10% de chance de ganhar um pênalti. Batedor e goleiro escolhem um canto: se o goleiro erra, sai gol quase sempre; se acerta, quase nunca. A nota de cada um ajusta essas chances.
 const CHANCE_VERMELHO=.05, BONUS_VERMELHO=1.10, CHANCE_PENALTI=.10;
+// Jogo de volta: quem perde o confronto por um gol tem esta chance de empatar o agregado nos acréscimos.
+const CHANCE_EMPATE_TARDIO=.5;
 const CANTOS=["Esquerdo","Meio","Direito"];
 function chanceCanto(r,gk,mesmoCanto){return mesmoCanto?Math.min(.4,Math.max(.05,.2+(r-gk)*.01)):Math.min(.97,Math.max(.7,.85+(r-85)*.01));}
 function chancePen(r,gk){return (chanceCanto(r,gk,true)+2*chanceCanto(r,gk,false))/3;}
@@ -820,7 +825,13 @@ function simular(){
         j.passou=j.agg[0]>j.agg[1]||!!(j.pen&&j.pen[0]>j.pen[1]);
         if(!j.passou)p.ultimo=true;
       },p=>{
-        const j=p.jogo; j.agg=[ida.jogo.ga+j.ga,ida.jogo.gb+j.gb];
+        const j=p.jogo, dif=ida.jogo.ga+j.ga-ida.jogo.gb-j.gb;
+        if(Math.abs(dif)===1&&rng()<CHANCE_EMPATE_TARDIO){
+          const T=dif>0?o:me, lado=T===me?meuLado:meuLado==="a"?"b":"a";
+          rV.gols.push({m:txtMin(90+entre(1,5,rng)),quem:marcador(T.players,rng,expulsos(rV,lado)),meu:T===me,lado}); ordena(rV);
+          if(T===me)j.ga++; else j.gb++;
+        }
+        j.agg=[ida.jogo.ga+j.ga,ida.jogo.gb+j.gb];
         return j.agg[0]===j.agg[1]?criaDisputa(me,o,rng,expulsos(rV,meuLado),expulsos(rV,meuLado==="a"?"b":"a")):null;
       });
       yield volta;
@@ -971,6 +982,7 @@ function comecarJogo(){
   const id="jogo"+S.k; S.k++;
   S.atual={p,id,fim:false,min:0};
   listaDoJogo(p).insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
+  rolaCelular($(id),"center");
   controles();
   rodar();
 }
@@ -991,7 +1003,7 @@ function rodar(){
   },dur/VEL_MIN);
 }
 const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900;
-const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true});};
+const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true}); rolaCelular(document.querySelector(`#${a.id} .disputa`),"nearest");};
 function pedirPen(){
   const a=S.atual, p=proxPen(a); a.pen=p; a.escolhendo=true; a.batedor=p.meu?null:p.batedor;
   desenhaVivo(a,p.meu?htmlEscolha(p,S.sim.me):htmlCanto(p,p.batedor,a.p.jogo,S.sim.me));
