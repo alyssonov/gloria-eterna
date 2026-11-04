@@ -155,8 +155,8 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .res.d{background:rgba(255,122,107,.15);color:var(--derrota)}
 .placar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-weight:600}
 .placar .gols{font-family:var(--display);font-weight:900;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
-.placar .pen{font-family:var(--mono);font-size:12px;color:var(--nevoa);font-weight:400}
-.gols-lista{font-family:var(--mono);font-size:12px;color:var(--nevoa);display:flex;flex-wrap:wrap;gap:2px 12px}
+.placar .pen{font-family:var(--mono);font-size:12px;color:var(--ouro);font-weight:400}
+.gols-lista{font-family:var(--mono);font-size:12px;color:var(--nevoa);display:flex;flex-direction:column;gap:2px;margin-top:6px}
 .gols-lista .meu{color:var(--prata)}
 .disputa{grid-column:2;display:grid;gap:6px;margin-top:6px;padding-top:10px;border-top:1px solid var(--borda)}
 .disputa .linha{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px}
@@ -268,7 +268,7 @@ footer{color:var(--nevoa);font-size:12.5px}
 
   <section class="painel" id="simulacao" hidden aria-labelledby="t-sim">
     <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
-      <div class="acoes"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular o resto</button></div></div>
+      <div class="acoes"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular tudo</button></div></div>
     <div id="veredito"></div>
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
@@ -433,7 +433,7 @@ const VEL_MIN=90;
 const S={};
 function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value;
-  S.alm=$("modo").value==="almanaque"; S.revelar=false;
+  S.alm=$("modo").value==="almanaque";
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
   S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
@@ -441,7 +441,7 @@ function novoJogo(){
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
   render();
 }
-const escondido=()=>S.alm&&!S.revelar;
+const escondido=()=>S.alm&&!completo();
 function completo(){return S.slots.every(s=>s.player);}
 
 // Para onde um jogador pode ir. origem = índice da vaga de onde ele sai (null para jogador recém-sorteado).
@@ -562,7 +562,7 @@ function render(){
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   const f=minhaForca();
   $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
-     :(escondido()?`<span>Modo almanaque: força escondida até o fim da Copa. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
+     :(escondido()?`<span>Modo almanaque: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
   $("btnSimular").disabled=!completo();
   // base
   const b=$("base");
@@ -999,7 +999,6 @@ function fimCopa(){
   $("btnProximo").hidden=true; $("btnPular").hidden=true;
   $("veredito").innerHTML=htmlVeredito(sim);
   $("veredito").scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});
-  if(S.alm){S.revelar=true;render();}
   $("btnDenovo").onclick=novaCarreira;
   $("btnMesmo").onclick=()=>mostrar(simular());
   $("btnCompartilhar").onclick=()=>abrirCompartilhar(sim);
