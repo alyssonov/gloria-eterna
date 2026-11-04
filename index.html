@@ -132,6 +132,15 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.principal{background:var(--ouro-metal);border-color:#a8701f;color:#0a0a0a;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:.04em;padding:10px 22px}
 .btn.principal:hover:not(:disabled){filter:brightness(1.1)}
+/* Celular: os botões do jogo ficam presos ao pé da tela, para jogar sem rolar. */
+@media (max-width:860px){
+  #barraJogo{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-wrap:nowrap;gap:8px;background:var(--noite);border-top:1px solid var(--borda);
+    padding:10px max(16px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  #btnProximo{flex:1;min-width:0;padding-inline:10px;font-size:18px}
+  #btnPular{flex:none;padding-inline:12px;white-space:nowrap}
+  body:has(#simulacao:not([hidden]) #barraJogo:not([hidden])){padding-bottom:84px}
+  .jogo,.disputa{scroll-margin-bottom:84px}
+}
 @media (max-width:860px){#btnRecomecar{margin-left:auto;align-self:flex-end}}
 .dica{color:var(--nevoa);font-size:13px;margin:0}
 
@@ -317,7 +326,7 @@ footer{color:var(--nevoa);font-size:12.5px}
 
   <section class="painel" id="simulacao" hidden aria-labelledby="t-sim">
     <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
-      <div class="acoes"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular tudo</button></div></div>
+      <div class="acoes" id="barraJogo"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular tudo</button></div></div>
     <div id="veredito"></div>
     <div class="jogos" id="mata"></div>
     <div class="tabela-wrap" id="grupo"></div>
@@ -1032,7 +1041,7 @@ function mostrar(sim){
   clearInterval(S.relogio); clearTimeout(S.timerPen);
   S.sim=sim; S.k=0; S.atual=null; S.encerrada=false; S.campanha=true; render();
   $("simulacao").hidden=false; $("veredito").innerHTML=""; $("mata").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
-  $("btnProximo").hidden=false; $("btnPular").hidden=false;
+  $("btnProximo").hidden=false; $("btnPular").hidden=false; $("barraJogo").hidden=false;
   $("simulacao").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});
   comecarJogo();
 }
@@ -1162,7 +1171,7 @@ function fimCopa(){
   if(S.encerrada)return;
   clearInterval(S.relogio); clearTimeout(S.timerPen);
   const sim=S.sim; sim.terminar(); $("btnProximo").disabled=false;
-  $("btnProximo").hidden=true; $("btnPular").hidden=true;
+  $("btnProximo").hidden=true; $("btnPular").hidden=true; $("barraJogo").hidden=true;
   S.encerrada=true; render();
   $("veredito").innerHTML=htmlVeredito(sim);
   $("veredito").scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});
