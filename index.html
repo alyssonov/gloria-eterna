@@ -174,7 +174,9 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .narra.gol{color:var(--vitoria);animation:surge .3s ease-out}
 .narra.erro{color:var(--derrota);animation:surge .3s ease-out}
 .cv{display:inline-block;width:8px;height:11px;border-radius:1.5px;background:var(--cartao);margin-right:4px;vertical-align:-1px}
+.gols-lista .cv{margin:0 0 0 6px}
 .gols-lista .perdido{color:var(--nevoa);font-style:italic}
+#mata:empty{display:none}
 .aviso{grid-column:2;font-size:14px;font-weight:600;padding:6px 10px;border-radius:6px;background:var(--arquibancada);border-left:3px solid var(--ouro)}
 .aviso.bom{border-left-color:var(--vitoria)}
 .aviso.ruim{border-left-color:var(--derrota)}
@@ -284,6 +286,7 @@ footer{color:var(--nevoa);font-size:12.5px}
     <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
       <div class="acoes"><button class="btn principal" id="btnProximo">Próximo jogo</button><button class="btn" id="btnPular">Simular tudo</button></div></div>
     <div id="veredito"></div>
+    <div class="jogos" id="mata"></div>
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
   </section>
@@ -449,7 +452,7 @@ function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value;
   S.alm=$("modo").value==="raiz";
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
-  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.anim=false; S.ultimo=-1;
+  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
   S.rng=mulberry32((Math.random()*4294967296)>>>0);
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
@@ -577,7 +580,8 @@ function render(){
   const f=minhaForca();
   $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
      :(escondido()?`<span>Modo raiz: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
-  $("btnSimular").disabled=!completo();
+  $("btnSimular").disabled=!completo()||S.encerrada;
+  ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
   // base
   const b=$("base");
   if(!b.children.length) b.innerHTML=CHAMPS.map(c=>`<div class="placa" title="${esc(c.t)} ${c.y}">${c.y}</div>`).join("");
@@ -852,8 +856,8 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   <div class="gols-lista">${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
 function htmlLances(gs,evs,vivo){
-  const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (pên.)":""}</span>`})),
-    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}"><i class="cv" title="Cartão vermelho"></i>${e.m}' ${esc(e.quem)}</span>`:`<span class="perdido">${e.m}' ${esc(e.quem)} perdeu pênalti</span>`}))]
+  const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
+    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido">${e.m}' ${esc(e.quem)} perdeu pênalti</span>`}))]
     .sort((a,b)=>ordMin(a.m)-ordMin(b.m));
   if(!it.length)return `<span>${vivo?"Bola rolando":"Sem gols"}</span>`;
   if(!gs.length&&!vivo)it.unshift({h:"<span>Sem gols</span>"});
@@ -869,9 +873,8 @@ function htmlAviso(j,me,gs,evs,min){
   return `<div class="aviso ${bom?"bom":"ruim"}">${rec.m}' ${txt}</div>`;
 }
 function htmlEscolha(p,me){
-  const oculto=escondido();
   return `<div class="disputa escolha"><div class="narra prep">Pênalti para ${esc(me.nome)} aos ${p.m}'! Quem vai bater?</div>
-  <div class="batedores">${p.opcoes.map((x,i)=>`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>${POS[x.pos]}${oculto?"":` · nota ${notaPen(x)} · ${Math.round(chancePen(notaPen(x),p.gk)*100)}% de chance`}</small></button>`).join("")}</div></div>`;
+  <div class="batedores">${p.opcoes.map((x,i)=>`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>Chance de gol: ${Math.round(chancePen(notaPen(x),p.gk)*100)}%</small></button>`).join("")}</div></div>`;
 }
 // Goleiro e bola no campinho. Sem c, fica a cena parada; com c, as variáveis levam cada um até o lance.
 function cenaPen(p,c,batida){
@@ -926,7 +929,7 @@ function htmlVeredito(sim){
   if(perfeita){titulo="Campanha perfeita";texto=`13 vitórias em 13 jogos. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
   else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo.`;}
   else if(campeao){titulo="Campeão da Libertadores";texto=`${esc(sim.me.nome)} levanta a taça, mas com sustos pelo caminho.`;}
-  else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"A Copa acabou cedo. Sorteie de novo e monte outro time.";}
+  else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"Não desista! Dê mais uma chance para seu time ou faça uma reestruturação de elenco.";}
   const f=sim.me;
   return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
@@ -937,17 +940,19 @@ function htmlVeredito(sim){
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
 function mostrar(sim){
   clearInterval(S.relogio); clearTimeout(S.timerPen);
-  S.sim=sim; S.k=0; S.atual=null;
-  $("simulacao").hidden=false; $("veredito").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
+  S.sim=sim; S.k=0; S.atual=null; S.encerrada=false; render();
+  $("simulacao").hidden=false; $("veredito").innerHTML=""; $("mata").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
   $("btnProximo").hidden=false; $("btnPular").hidden=false;
   $("simulacao").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});
   comecarJogo();
 }
+// Jogos da fase de grupos ficam abaixo da tabela; os do mata-mata, acima dela.
+const listaDoJogo=p=>$(p.jogo.fase.startsWith("Grupos")?"jogos":"mata");
 function comecarJogo(){
   const p=S.sim.avancar(); if(!p){fimCopa();return;}
   const id="jogo"+S.k; S.k++;
   S.atual={p,id,fim:false,min:0};
-  $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
+  listaDoJogo(p).insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
   controles();
   rodar();
 }
@@ -1056,7 +1061,7 @@ function simularResto(){
   while((p=S.sim.avancar())){
     p.resolver();
     const id="jogo"+S.k; S.k++;
-    $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
+    listaDoJogo(p).insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
     if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
   }
   fimCopa();
@@ -1065,6 +1070,7 @@ function fimCopa(){
   clearInterval(S.relogio); clearTimeout(S.timerPen);
   const sim=S.sim; sim.terminar(); $("btnProximo").disabled=false;
   $("btnProximo").hidden=true; $("btnPular").hidden=true;
+  S.encerrada=true; render();
   $("veredito").innerHTML=htmlVeredito(sim);
   $("veredito").scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});
   $("btnDenovo").onclick=novaCarreira;
@@ -1197,7 +1203,7 @@ $("btnRecomecar").onclick=novoJogo;
 $("btnSimular").onclick=()=>{S.sel=null;S.mover=null;render();mostrar(simular());};
 $("btnProximo").onclick=proximo;
 $("btnPular").onclick=simularResto;
-$("jogos").addEventListener("click",e=>{const b=e.target.closest("[data-bat]");if(b)escolherBatedor(+b.dataset.bat);const c=e.target.closest("[data-canto]");if(c)escolherCanto(+c.dataset.canto);});
+$("simulacao").addEventListener("click",e=>{const b=e.target.closest("[data-bat]");if(b)escolherBatedor(+b.dataset.bat);const c=e.target.closest("[data-canto]");if(c)escolherCanto(+c.dataset.canto);});
 $("formacao").onchange=novoJogo; $("modo").onchange=novoJogo;
 $("estilo").onchange=()=>{S.style=$("estilo").value;render();};
 $("nomeTime").oninput=render;
