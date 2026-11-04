@@ -202,7 +202,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 .campeao .acoes{justify-content:center}
 .fechar-x{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:0;border-radius:6px;color:var(--prata);font-size:28px;line-height:1;cursor:pointer}
 .fechar-x:hover{color:var(--ouro)}
-.dica:empty,.modal[hidden]{display:none}
+.dica:empty,#sorteado:empty,.modal[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -212,7 +212,7 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
   <header>
     <div class="marca">
       <h1>Glória <span>Eterna</span></h1>
-      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos sem sofrer gol é a campanha perfeita.</p>
+      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos é a campanha perfeita.</p>
     </div>
     <div class="ajustes">
       <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" value="Esquadrão da Glória"></div>
@@ -532,7 +532,7 @@ function render(){
   let dica="";
   if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"");}
   else if(S.mover!=null){const p=S.slots[S.mover].player;dica=`Mover <b>${esc(p.name)}</b> (${posTxt(p)}): toque numa vaga destacada. Toque nele de novo para cancelar.`;}
-  else if(S.picks)dica="Toque num jogador do campo para mudar a posição dele. Borda tracejada: jogando fora da posição de origem (−2 de força).";
+  else if(S.picks)dica="Toque num jogador do campo para mudar a posição dele.<br>Borda tracejada: jogando fora da posição de origem (−2 de força).";
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   const f=minhaForca();
   $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
@@ -553,7 +553,7 @@ function render(){
   if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Ainda dá para trocar jogadores de posição no campo. Depois, dispute a Libertadores.</div>`;return;}
   if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
   if(!S.current){
-    box.innerHTML=`<div class="vazio">Sorteie um campeão e escolha um jogador daquele elenco.</div>`;return;
+    box.innerHTML="";return;
   }
   const c=S.current;
   const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||b.p.r-a.p.r);
@@ -834,10 +834,10 @@ function htmlVeredito(sim){
   const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
   const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
   const campeao=!sim.fimFase; const vitorias=res.filter(r=>r==="v").length;
-  const perfeita=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
+  const perfeita=campeao&&js.every(j=>j.ga>j.gb);
   const invicto=campeao&&!res.includes("d");
   let titulo,texto;
-  if(perfeita){titulo="Campanha perfeita";texto=`13 vitórias, nenhum gol sofrido. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
+  if(perfeita){titulo="Campanha perfeita";texto=`13 vitórias em 13 jogos. ${esc(sim.me.nome)} ganha a placa ${new Date().getFullYear()} na base do troféu.`;}
   else if(invicto){titulo="Campeão invicto";texto=`A Glória Eterna é de ${esc(sim.me.nome)}, sem perder um jogo.`;}
   else if(campeao){titulo="Campeão da Libertadores";texto=`${esc(sim.me.nome)} levanta a taça, mas com sustos pelo caminho.`;}
   else{titulo=sim.fimFase;texto=sim.fimFase==="Vice-campeão"?"Chegou na final e parou ali. Monte outro time e tente de novo.":"A Copa acabou cedo. Sorteie de novo e monte outro time.";}
@@ -988,7 +988,7 @@ function resumo(sim){
   const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
   const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
   const campeao=!sim.fimFase;
-  const perfeita=campeao&&js.every(j=>j.ga>j.gb)&&gc===0;
+  const perfeita=campeao&&js.every(j=>j.ga>j.gb);
   const invicto=campeao&&!res.includes("d");
   const titulo=perfeita?"Campanha perfeita":invicto?"Campeão invicto":campeao?"Campeão da Libertadores":sim.fimFase;
   const tab=sim.passos[5]&&sim.passos[5].tabela; const posGrupo=tab?tab.findIndex(x=>x.t.eu)+1:null;
