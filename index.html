@@ -181,6 +181,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .batedores{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
 .bat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:6px;border:1px solid var(--borda);background:var(--arquibancada);color:var(--prata);font:inherit;font-weight:600;cursor:pointer}
 .bat small{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--nevoa)}
+.disputa .disputa{margin:0;padding:0;border:0}
 .cantos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .bat.canto{align-items:center;text-align:center;padding:12px 4px}
 .penal{position:relative;width:100%;max-width:340px;height:150px;margin:2px auto;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,var(--gramado),var(--gramado2))}
@@ -307,7 +308,7 @@ footer{color:var(--nevoa);font-size:12.5px}
     </div>
   </div>
 
-  <footer>Os elencos trazem os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis. Em qualquer jogo pode haver expulsão, que dá ao outro time 10% mais chance de gol, e pênalti a favor; quando o pênalti é do seu time, você escolhe quem bate e o canto; quando é contra, escolhe para onde o goleiro pula.</footer>
+  <footer>Os elencos trazem os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais. Lendas, com nota 90 ou mais, aparecem em dourado. Adversários são outros campeões da Libertadores, com o time inteiro entrosado. O seu time perde força se for só uma coleção de craques: jogadores do mesmo clube, e em menor grau da mesma década, aumentam o entrosamento. Jogar em casa ajuda; a final é em campo neutro, com prorrogação e pênaltis se empatar. Nas fases de ida e volta, empate no agregado vai direto para os pênaltis. Em qualquer jogo pode haver expulsão, que dá ao outro time 10% mais chance de gol, e pênalti a favor; quando o pênalti é do seu time, você escolhe quem bate e o canto; quando é contra, escolhe para onde o goleiro pula. Nas disputas de pênaltis, você escolhe o canto em todas as cobranças.</footer>
 </div>
 
 <script>
@@ -639,19 +640,28 @@ function batedores(t,fora){
   const top=linha.slice(0,5);
   return [...top.slice(1),top[0],...linha.slice(5),...ps.filter(p=>p.pos==="G")].filter(Boolean);
 }
-// Cobranças alternadas; a disputa acaba assim que um lado não consegue mais alcançar o outro.
-function penaltis(A,B,rng,foraA,foraB){
-  const pA=.77-((B.gk||80)-80)*.004, pB=.77-((A.gk||80)-80)*.004;
-  const la=batedores(A,foraA), lb=batedores(B,foraB), cobr=[];
-  let a=0,b=0,ka=0,kb=0;
-  const bateA=()=>{const g=rng()<pA;if(g)a++;cobr.push({eu:!!A.eu,time:A.nome,quem:la[ka++%la.length].name,gol:g});};
-  const bateB=()=>{const g=rng()<pB;if(g)b++;cobr.push({eu:!!B.eu,time:B.nome,quem:lb[kb++%lb.length].name,gol:g});};
-  for(let i=0;i<5;i++){
-    bateA(); if(a>b+(5-i)||b>a+(4-i))break;
-    bateB(); if(a>b+(4-i)||b>a+(4-i))break;
-  }
-  if(a===b)while(a===b){bateA();bateB();}
-  const r=[a,b]; r.cobr=cobr; return r;
+// Disputa cobrança a cobrança, alternada; acaba assim que um lado não consegue mais alcançar o outro.
+function criaDisputa(A,B,rng,foraA,foraB){
+  const la=batedores(A,foraA), lb=batedores(B,foraB);
+  const d={cobr:[],a:0,b:0,ka:0,kb:0,atual:null,
+    prox(){
+      if(d.atual)return d.atual;
+      const {a,b,ka,kb}=d;
+      if(ka===kb&&ka>=5){if(a!==b)return null;}
+      else if(ka<5||kb<5){if(a>b+Math.max(0,5-kb)||b>a+Math.max(0,5-ka))return null;}
+      const ehA=ka<=kb, X=ehA?A:B, Y=ehA?B:A, lista=ehA?la:lb;
+      return d.atual={ehA,meu:!!X.eu,time:X.nome,quem:lista[(ehA?ka:kb)%lista.length],gk:Y.gk||80,u:rng(),cb:entre(0,2,rng),cg:entre(0,2,rng)};
+    },
+    bater(s,cb=s.cb,cg=s.cg){
+      s.cobrado=resultadoPen(s,s.quem,cb,cg);
+      const g=s.cobrado.gol;
+      d.cobr.push({eu:s.meu,time:s.time,quem:s.quem.name,gol:g});
+      if(s.ehA){d.ka++;if(g)d.a++;}else{d.kb++;if(g)d.b++;}
+      d.atual=null;
+    },
+    resultado(){const r=[d.a,d.b];r.cobr=d.cobr;return r;}
+  };
+  return d;
 }
 const placar=r=>({a:r.gols.filter(g=>g.lado==="a").length,b:r.gols.filter(g=>g.lado==="b").length});
 const expulsos=(r,lado)=>new Set(r.eventos.filter(e=>e.tipo==="vermelho"&&e.lado===lado).map(e=>e.quem));
@@ -663,7 +673,7 @@ function jogar(A,B,rng,mando,final){
   const verm={};
   ["a","b"].forEach(l=>{if(rng()<CHANCE_VERMELHO){const T=lados[l];verm[l]={m:entre(1,88,rng),quem:sorteiaPeso(T.players,p=>({G:.2,D:3,M:2.5,A:1}[SETOR[p.pos]]),rng).name};}});
   const fora=(l,m)=>verm[l]&&m>verm[l].m?new Set([verm[l].quem]):null;
-  const r={A,B,final,verm,gols:[],eventos:[],prorr:false,pen:null,pens:[],fechado:false};
+  const r={A,B,final,verm,gols:[],eventos:[],prorr:false,pens:[],fechado:false};
   ["a","b"].forEach(l=>{
     const X=lados[l], Y=lados[outro[l]], vY=verm[outro[l]];
     const f=vY?vY.m/93:1, peso=f+(1-f)*BONUS_VERMELHO;
@@ -693,7 +703,7 @@ function cobrar(r,pen,quem,cb=pen.cb,cg=pen.cg){
   else r.eventos.push({m:String(pen.m),tipo:"perdido",quem:quem.name,meu:pen.meu,lado:pen.lado});
   ordena(r);
 }
-// Fecha o jogo: na final, empate leva à prorrogação e depois aos pênaltis.
+// Fecha o tempo normal: na final, empate leva à prorrogação. Quem chama decide se ainda há disputa de pênaltis.
 function fechar(r,rng){
   if(r.fechado)return; r.fechado=true;
   if(r.final){
@@ -704,8 +714,6 @@ function fechar(r,rng){
         const n=poisson(lambda(X,Y,0)/3*(r.verm[o]?BONUS_VERMELHO:1),rng), ex=expulsos(r,l);
         for(let i=0;i<n;i++)r.gols.push({m:txtMin(entre(91,122,rng),true),quem:marcador(X.players,rng,ex),meu:!!X.eu,lado:l});
       });
-      s=placar(r);
-      if(s.a===s.b)r.pen=penaltis(r.A,r.B,rng,expulsos(r,"a"),expulsos(r,"b"));
     }
   }
   ordena(r);
@@ -724,20 +732,34 @@ function simular(){
   const adv=(lo,hi,fase)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
     if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);const a=AJUSTE[fase]||0;return {...t,att:t.att+a,def:t.def+a};};
   const sim={me,passos:[],fimFase:null,acabou:false};
-  // Monta o jogo como o seu time vê; depois() roda quando o placar está fechado.
-  const montar=(r,info,depois)=>{
+  // Monta o jogo como o seu time vê. empate() diz se o jogo vai para a disputa de pênaltis; depois() roda quando tudo acabou.
+  const montar=(r,info,depois,empate)=>{
     const jogo={...info,gols:r.gols,eventos:r.eventos,pens:r.pens,ga:0,gb:0,prorr:false,pen:null};
     const conta=()=>{jogo.ga=r.gols.filter(g=>g.meu).length;jogo.gb=r.gols.filter(g=>!g.meu).length;};
     const passo={jogo,resolvido:false,ultimo:false};
-    passo.resolver=()=>{
-      if(passo.resolvido)return; passo.resolvido=true;
-      r.pens.forEach(p=>{if(!p.cobrado)cobrar(r,p,p.batedor);});
-      fechar(r,rng); conta(); jogo.prorr=r.prorr; jogo.pen=r.pen;
+    const conclui=()=>{
+      passo.resolvido=true;
+      if(jogo.disputa)jogo.pen=jogo.disputa.resultado();
       if(depois)depois(passo);
     };
-    passo.cobrar=(pen,quem,cb,cg)=>{cobrar(r,pen,quem,cb,cg);if(r.pens.every(p=>p.cobrado))passo.resolver();};
+    const fechaJogo=()=>{
+      if(passo.fechou)return; passo.fechou=true;
+      r.pens.forEach(p=>{if(!p.cobrado)cobrar(r,p,p.batedor);});
+      fechar(r,rng); conta(); jogo.prorr=r.prorr;
+      jogo.disputa=empate?empate(passo):null;
+      if(!jogo.disputa)conclui();
+    };
+    // Resolve o que faltar sem a sua participação (Simular tudo, Pular pênaltis).
+    passo.resolver=()=>{
+      fechaJogo();
+      if(passo.resolvido)return;
+      let s; while((s=jogo.disputa.prox()))jogo.disputa.bater(s);
+      conclui();
+    };
+    passo.fimDisputa=conclui;
+    passo.cobrar=(pen,quem,cb,cg)=>{cobrar(r,pen,quem,cb,cg);if(r.pens.every(p=>p.cobrado))fechaJogo();};
     conta();
-    if(!r.pens.length)passo.resolver();
+    if(!r.pens.length)fechaJogo();
     return passo;
   };
   function* campanha(){
@@ -772,18 +794,21 @@ function simular(){
       yield ida;
       const rV=voltaEmCasa?jogar(me,o,rng,1,false):jogar(o,me,rng,1,false), meuLado=voltaEmCasa?"a":"b";
       const volta=montar(rV,{fase:`${nome} · volta`,local:voltaEmCasa?"casa":"fora",adv:o},p=>{
-        const j=p.jogo; j.agg=[ida.jogo.ga+j.ga,ida.jogo.gb+j.gb];
-        j.pen=j.agg[0]===j.agg[1]?penaltis(me,o,rng,expulsos(rV,meuLado),expulsos(rV,meuLado==="a"?"b":"a")):null;
+        const j=p.jogo;
         j.passou=j.agg[0]>j.agg[1]||!!(j.pen&&j.pen[0]>j.pen[1]);
         if(!j.passou)p.ultimo=true;
+      },p=>{
+        const j=p.jogo; j.agg=[ida.jogo.ga+j.ga,ida.jogo.gb+j.gb];
+        return j.agg[0]===j.agg[1]?criaDisputa(me,o,rng,expulsos(rV,meuLado),expulsos(rV,meuLado==="a"?"b":"a")):null;
       });
       yield volta;
       if(!volta.jogo.passou){sim.fimFase=elim;return;}
     }
     const o=adv(.7,1,"Final");
-    const fin=montar(jogar(me,o,rng,0,true),{fase:"Final · jogo único",local:"neutro",adv:o,final:true},p=>{
+    const rF=jogar(me,o,rng,0,true);
+    const fin=montar(rF,{fase:"Final · jogo único",local:"neutro",adv:o,final:true},p=>{
       const j=p.jogo; j.passou=j.ga>j.gb||!!(j.pen&&j.pen[0]>j.pen[1]); p.ultimo=true;
-    });
+    },p=>p.jogo.ga===p.jogo.gb?criaDisputa(me,o,rng,expulsos(rF,"a"),expulsos(rF,"b")):null);
     yield fin;
     if(!fin.jogo.passou)sim.fimFase="Vice-campeão";
   }
@@ -800,7 +825,7 @@ function simular(){
 
 function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":"e";}
 // min definido = jogo em andamento até aquele minuto
-// disp = disputa de pênaltis em andamento: {k: cobranças já mostradas, prep: a cobrança k está sendo preparada}
+// disp = disputa de pênaltis em andamento: {vez: cobrança da vez, miolo: conteúdo abaixo do placar da disputa}
 // extra = bloco extra no cartão (escolha do batedor ou resultado da cobrança)
 function htmlJogo(j,me,id,min,novo,disp,extra){
   const vivo=min!==undefined, penVivo=!!disp;
@@ -821,7 +846,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
       if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
     }
   }
-  const pen=!vivo&&j.pen&&j.pen.cobr?htmlPen(j,me,penVivo?disp.k:j.pen.cobr.length,penVivo&&disp.prep):"";
+  const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
   return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase}<br>${local}<br>${estado}</div>
   <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${ga} × ${gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
   <div class="gols-lista">${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
@@ -862,30 +887,26 @@ function cenaPen(p,c,batida){
   return `<div class="penal${batida?" batida":""}"${v}><div class="trave"></div><div class="gl${p.meu?"":" meu"}"></div><div class="bp"></div></div>`;
 }
 function htmlCanto(p,quem,j,me){
-  const titulo=p.meu?`Onde ${esc(quem.name)} vai bater?`:`Pênalti contra ${esc(me.nome)} aos ${p.m}'! ${esc(quem.name)} (${esc(j.adv.nome)}) vai bater. Para onde o goleiro pula?`;
+  const titulo=p.meu?`Onde ${esc(quem.name)} vai bater?`:`${p.m?`Pênalti contra ${esc(me.nome)} aos ${p.m}'! `:""}${esc(quem.name)} (${esc(j.adv.nome)}) vai bater. Para onde o goleiro pula?`;
   return `<div class="disputa escolha"><div class="narra prep">${titulo}</div>${cenaPen(p)}
   <div class="cantos">${CANTOS.map((t,i)=>`<button class="bat canto" data-canto="${i}">${t}</button>`).join("")}</div></div>`;
 }
 function htmlCobranca(p){
   const c=p.cobrado, mesmo=c.cb===c.cg;
   const frase=c.gol?(c.cb===1?"No meio do gol, com categoria.":mesmo?"O goleiro foi no canto, mas não alcançou.":"Deslocou o goleiro."):(mesmo?"O goleiro defendeu!":c.cb===1?"Por cima do gol!":"Na trave!");
-  return `<div class="disputa"><div class="narra ${c.gol===p.meu?"gol":"erro"}">${p.m}' ${c.gol?`GOL de ${esc(c.quem)}!`:`${esc(c.quem)} perdeu!`} ${frase}</div>${cenaPen(p,c,true)}</div>`;
+  return `<div class="disputa"><div class="narra ${c.gol===p.meu?"gol":"erro"}">${p.m?`${p.m}' `:""}${c.gol?`GOL de ${esc(c.quem)}!`:`${esc(c.quem)} perdeu!`} ${frase}</div>${cenaPen(p,c,true)}</div>`;
 }
-const FRASE_GOL=["Bateu firme no canto.","Deslocou o goleiro.","No ângulo, sem chance.","Rasteira, no cantinho.","Forte, no meio do gol."];
-const FRASE_ERRO=["O goleiro defendeu!","Na trave!","Isolou, por cima do gol!","Pra fora!","Defesaça do goleiro!"];
-function htmlPen(j,me,k,prep){
-  const c=j.pen.cobr, vis=c.slice(0,k), vez=prep?c[k]:null;
+function htmlPen(j,me,vez,miolo){
+  const vis=(j.pen||j.disputa).cobr;
   const linha=eu=>{
     const meus=vis.filter(x=>x.eu===eu), n=meus.filter(x=>x.gol).length;
-    const total=Math.max(5,meus.length+(vez&&vez.eu===eu?1:0));
+    const total=Math.max(5,meus.length+(vez&&vez.meu===eu?1:0));
     let b="";for(let i=0;i<total;i++){const x=meus[i];
-      b+=x?(x.gol?`<i class="g" title="Gol de ${esc(x.quem)}"></i>`:`<i class="x" title="${esc(x.quem)} perdeu">✕</i>`):(vez&&vez.eu===eu&&i===meus.length?`<i class="vez"></i>`:`<i></i>`);}
+      b+=x?(x.gol?`<i class="g" title="Gol de ${esc(x.quem)}"></i>`:`<i class="x" title="${esc(x.quem)} perdeu">✕</i>`):(vez&&vez.meu===eu&&i===meus.length?`<i class="vez"></i>`:`<i></i>`);}
     return `<div class="linha${eu?" eu":""}"><span class="nome">${esc(eu?me.nome:j.adv.nome)}</span><span class="bolas">${b}</span><span class="pp">${n}</span></div>`;
   };
-  let narra;
-  if(vez)narra=`<div class="narra prep">${esc(vez.quem)} ajeita a bola… <small>${esc(vez.time)}</small></div>`;
-  else if(k<c.length||!k){const u=c[k-1];narra=u?`<div class="narra ${u.gol?"gol":"erro"}">${u.gol?`GOL de ${esc(u.quem)}! ${FRASE_GOL[k%FRASE_GOL.length]}`:`${esc(u.quem)} perdeu! ${FRASE_ERRO[k%FRASE_ERRO.length]}`}</div>`:`<div class="narra">Disputa de pênaltis</div>`;}
-  else{const ganhou=j.pen[0]>j.pen[1], u=c[k-1];
+  let narra=miolo;
+  if(!miolo){const ganhou=j.pen[0]>j.pen[1], u=vis[vis.length-1];
     narra=`<div class="narra ${ganhou?"gol":"erro"}">${u.gol?`GOL de ${esc(u.quem)}!`:`${esc(u.quem)} perdeu!`} ${esc(ganhou?me.nome:j.adv.nome)} vence nos pênaltis por ${Math.max(...j.pen)} a ${Math.min(...j.pen)}.</div>`;}
   return `<div class="disputa">${linha(true)}${linha(false)}${narra}</div>`;
 }
@@ -946,7 +967,7 @@ function rodar(){
     desenhaVivo(a);
   },dur/VEL_MIN);
 }
-const SUSPENSE_CORRIDA=1300, SUSPENSE_VOO=900;
+const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900;
 const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true});};
 function pedirPen(){
   const a=S.atual, p=proxPen(a); a.pen=p; a.escolhendo=true; a.batedor=p.meu?null:p.batedor;
@@ -963,32 +984,35 @@ function escolherCanto(i){
   const a=S.atual; if(!a||!a.escolhendo||!a.batedor)return;
   const p=a.pen, q=a.batedor, cb=p.meu?i:p.cb, cg=p.meu?p.cg:i;
   a.escolhendo=false; a.cob={p,q,cb,cg};
+  const desenha=x=>a.penando?desenhaDisputa(a,x,a.cob&&p):desenhaVivo(a,x);
   // O gol só entra na lista no fim da animação, para o placar não entregar a cobrança antes da hora.
-  desenhaVivo(a,`<div class="disputa"><div class="narra prep">${esc(q.name)} corre para a bola…</div>${cenaPen(p,resultadoPen(p,q,cb,cg))}</div>`);
+  desenha(`<div class="disputa"><div class="narra prep">${esc(q.name)} corre para a bola…</div>${cenaPen(p,resultadoPen(p,q,cb,cg))}</div>`);
   controles();
   S.timerPen=setTimeout(()=>{
     const cena=document.querySelector(`#${a.id} .penal`); if(cena)cena.classList.add("batida");
     S.timerPen=setTimeout(()=>{
       registraCobranca(a);
-      desenhaVivo(a,htmlCobranca(p));
+      desenha(htmlCobranca(p));
       controles();
+      if(a.penando){S.timerPen=setTimeout(()=>passoDisputa(a),1400);return;}
       const dur=+$("velocidade").value;
       S.timerPen=setTimeout(()=>{if(S.atual!==a||a.fim)return; if(reduz||!dur)apito(); else rodar();},reduz||!dur?1400:Math.round(1400+dur*.1));
     },SUSPENSE_VOO);
-  },SUSPENSE_CORRIDA);
+  },a.penando?SUSPENSE_DISPUTA:SUSPENSE_CORRIDA);
 }
-function registraCobranca(a){const c=a.cob; a.cob=null; a.batedor=null; a.p.cobrar(c.p,c.q,c.cb,c.cg);}
-// Apito final. Se o jogo vai para os pênaltis, a disputa começa aqui (a não ser que seja instantâneo).
+function registraCobranca(a){const c=a.cob; a.cob=null; a.batedor=null; if(a.penando)a.p.jogo.disputa.bater(c.p,c.cb,c.cg); else a.p.cobrar(c.p,c.q,c.cb,c.cg);}
+// Apito final. Se o jogo vai para os pênaltis, a disputa começa aqui. instantaneo resolve o que faltar sem perguntar.
 function apito(instantaneo){
   clearInterval(S.relogio); clearTimeout(S.timerPen);
   const a=S.atual; if(!a||a.fim)return;
-  const dur=+$("velocidade").value, j=a.p.jogo;
+  const j=a.p.jogo;
   if(a.cob)registraCobranca(a);
   if(pendente(a)){
-    if(instantaneo){a.escolhendo=false;if(a.batedor&&a.pen.meu)a.p.cobrar(a.pen,a.batedor);a.p.resolver();}
-    else{a.min=proxPen(a).m;pedirPen();return;}
+    if(!instantaneo){a.min=proxPen(a).m;pedirPen();return;}
+    if(a.batedor&&a.pen.meu)a.p.cobrar(a.pen,a.batedor);
   }
-  if(j.pen&&j.pen.cobr&&!instantaneo&&!reduz&&dur&&!a.penando){disputa(a,dur);return;}
+  if(instantaneo){a.escolhendo=false;a.p.resolver();encerra(a);return;}
+  if(j.disputa&&!a.p.resolvido){a.penando=true;passoDisputa(a);return;}
   encerra(a);
 }
 function encerra(a){
@@ -997,38 +1021,35 @@ function encerra(a){
   if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
   controles();
 }
-function disputa(a,dur){
-  a.penando=true; controles();
-  const c=a.p.jogo.pen.cobr, prep=Math.round(600+dur*.1), mostra=Math.round(400+dur*.04);
-  let k=0;
-  const desenha=p=>{const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false,{k,prep:p});};
-  const passo=()=>{
-    if(k>=c.length){encerra(a);return;}
-    desenha(true);
-    S.timerPen=setTimeout(()=>{k++;desenha(false);S.timerPen=setTimeout(passo,k>=c.length?mostra*2:mostra);},prep);
-  };
-  desenha(false);
-  S.timerPen=setTimeout(passo,mostra);
+function desenhaDisputa(a,miolo,vez){const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false,{vez,miolo});}
+// Próxima cobrança da disputa: você escolhe o canto, batendo ou defendendo.
+function passoDisputa(a){
+  if(S.atual!==a||a.fim)return;
+  const j=a.p.jogo, s=j.disputa.prox();
+  if(!s){a.p.fimDisputa();encerra(a);return;}
+  a.pen=s; a.batedor=s.quem; a.escolhendo=true;
+  desenhaDisputa(a,htmlCanto(s,s.quem,j,S.sim.me),s);
+  controles(); focaBat(a);
 }
 function controles(){
   const a=S.atual, bp=$("btnProximo");
   $("btnPular").disabled=!!(a&&a.fim&&a.p.ultimo);
-  bp.disabled=!!(a&&(a.escolhendo||cobrando(a)));
-  if(a&&a.escolhendo)bp.textContent=a.batedor?"Escolha o canto":"Escolha o batedor";
+  bp.disabled=!!(a&&!a.penando&&(a.escolhendo||cobrando(a)));
+  if(a&&a.penando)bp.textContent="Pular pênaltis";
+  else if(a&&a.escolhendo)bp.textContent=a.batedor?"Escolha o canto":"Escolha o batedor";
   else if(cobrando(a))bp.textContent="Cobrança em andamento";
-  else if(a&&a.penando)bp.textContent="Pular pênaltis";
   else if(a&&!a.fim)bp.textContent="Ir para o apito final";
   else bp.textContent=a&&a.p.ultimo?"Ver resultado final":"Próximo jogo";
 }
 function proximo(){
   const a=S.atual;
+  if(a&&a.penando){apito(true);return;}
   if(a&&(a.escolhendo||cobrando(a)))return;
-  if(a&&a.penando){encerra(a);return;}
   if(a&&!a.fim){apito();return;}
   if(a&&a.p.ultimo){fimCopa();return;}
   comecarJogo();
 }
-// Simula o resto da Copa de uma vez; nos pênaltis do seu time, bate o jogador de maior nota.
+// Simula o resto da Copa de uma vez, decidindo os pênaltis sem perguntar.
 function simularResto(){
   apito(true);
   let p;
