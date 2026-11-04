@@ -41,8 +41,10 @@ button{cursor:pointer}
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px}
 .marca h1{font-family:var(--display);font-weight:900;font-size:clamp(44px,8vw,84px);line-height:.88;letter-spacing:.01em;text-transform:uppercase;margin:0;text-wrap:balance}
 .marca h1 span{color:var(--ouro)}
-.marca h1{border-top:6px solid var(--ouro);padding-top:14px;display:inline-block}
-.marca p{margin:10px 0 0;color:var(--nevoa);max-width:58ch}
+.marca{flex:0 0 100%}
+.marca p{margin:10px 0 0;color:var(--nevoa)}
+/* Textos do começo e do fim: justificados e terminando na lateral direita do campo (coluna 5/11 da grade, menos borda e padding do painel). */
+.marca p,footer{max-width:calc((100% - 24px)*5/11 - 19px);text-align:justify}
 .ajustes{display:flex;flex-wrap:wrap;gap:12px}
 .campo{display:flex;flex-direction:column;gap:4px}
 .campo label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa)}
@@ -134,6 +136,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 
 /* Simulação */
 #simulacao[hidden]{display:none}
+#simulacao>.titulo-painel{position:sticky;top:0;z-index:5;margin:-8px -18px 0;padding:8px 18px;background:var(--arquibancada)}
 .tabela-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
 th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--borda);white-space:nowrap}
@@ -142,6 +145,7 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--nevoa
 tr.eu td{color:var(--ouro);font-weight:600}
 tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .jogos{display:flex;flex-direction:column;gap:8px}
+.jogo{scroll-margin:150px 0 16px}
 .jogo{display:grid;grid-template-columns:110px 1fr;gap:4px 14px;padding:12px;border-radius:8px;background:var(--noite);border:1px solid var(--borda);animation:surge .35s ease-out}
 @keyframes surge{from{transform:translateY(6px);opacity:.3}to{transform:none;opacity:1}}
 .fase{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa);grid-row:span 2}
@@ -190,7 +194,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .campanha span{width:26px;height:26px;display:grid;place-items:center;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:500}
 .campanha .v{background:var(--vitoria);color:#0b2a17}.campanha .e{background:var(--empate);color:#1b1e2c}.campanha .d{background:var(--derrota);color:#3a0d08}
 
-footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
+footer{color:var(--nevoa);font-size:12.5px}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);display:grid;place-items:center;overflow:auto;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
@@ -204,8 +208,11 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
 .fechar-x:hover{color:var(--ouro)}
 .dica:empty,#sorteado:empty,.modal[hidden]{display:none}
 @media (max-width:860px){
-  .marca{width:100%}
-  .marca p,footer{max-width:none;text-align:justify}
+  .marca p,footer{max-width:none}
+  #simulacao>.titulo-painel{display:contents}
+  .titulo-painel>.acoes{position:sticky;top:0;z-index:5;flex-wrap:nowrap;margin:-8px -18px 0;padding:8px 18px;background:var(--arquibancada)}
+  .titulo-painel>.acoes .btn{font-size:14px;padding:8px 12px}
+  .titulo-painel>.acoes .btn.principal{font-size:16px;flex:1}
   .ajustes{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}
   .ajustes .campo:first-child,.nota-modo{grid-column:1/-1}
   .ajustes select,.ajustes input{width:100%}
@@ -220,10 +227,10 @@ footer{color:var(--nevoa);font-size:12.5px;max-width:75ch}
   <header>
     <div class="marca">
       <h1>Glória <span>Eterna</span></h1>
-      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Copa no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos é a campanha perfeita.</p>
+      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Libertadores no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos é a campanha perfeita.</p>
     </div>
     <div class="ajustes">
-      <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" value="Esquadrão da Glória"></div>
+      <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" placeholder="Digite o nome do time"></div>
       <div class="campo"><label for="formacao">Esquema</label>
         <select id="formacao"><option>4-3-3</option><option>4-4-2</option><option>3-5-2</option></select></div>
       <div class="campo"><label for="estilo">Estilo</label>
@@ -569,7 +576,7 @@ function render(){
   [...b.children].forEach((el,i)=>{el.classList.toggle("usada",S.drawn.has(i)&&!(S.current&&S.current.i===i));el.classList.toggle("agora",!!(S.current&&S.current.i===i));});
   // botões
   const cheio=completo();
-  $("btnRolar").disabled=S.anim||cheio||!!S.current;
+  $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.alm?"Modo almanaque":"Modo amador";
@@ -888,12 +895,14 @@ function comecarJogo(){
   const p=S.sim.avancar(); if(!p){fimCopa();return;}
   const id="jogo"+S.k; S.k++;
   S.atual={p,id,fim:false,min:0};
-  $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
+  $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,S.sim.me,id,0,true));
+  if(S.k>1)verJogo(S.atual);
   controles();
   rodar();
 }
 const pendente=a=>a.p.jogo.pendente&&!a.p.resolvido;
 const cobrando=a=>a&&a.batedor&&pendente(a);
+const verJogo=a=>{const el=$(a.id); if(el)el.scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});};
 const desenhaVivo=(a,extra)=>{const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,a.min,false,null,extra);};
 // Relógio do jogo. Para no minuto do pênalti do seu time para você escolher o batedor.
 function rodar(){
@@ -911,6 +920,7 @@ const SUSPENSE_BOLA=1500, SUSPENSE_CORRIDA=1200;
 function pedirBatedor(){
   const a=S.atual; a.escolhendo=true;
   desenhaVivo(a,htmlEscolha(a.p.jogo,S.sim.me));
+  verJogo(a);
   controles();
   const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true});
 }
@@ -947,6 +957,7 @@ function encerra(a){
   clearTimeout(S.timerPen); a.fim=true; a.penando=false;
   const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false);
   if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
+  verJogo(a);
   controles();
 }
 function disputa(a,dur){
@@ -960,6 +971,7 @@ function disputa(a,dur){
     S.timerPen=setTimeout(()=>{k++;desenha(false);S.timerPen=setTimeout(passo,k>=c.length?mostra*2:mostra);},prep);
   };
   desenha(false);
+  verJogo(a);
   S.timerPen=setTimeout(passo,mostra);
 }
 function controles(){
@@ -986,7 +998,7 @@ function simularResto(){
   while((p=S.sim.avancar())){
     p.resolver();
     const id="jogo"+S.k; S.k++;
-    $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
+    $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
     if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
   }
   fimCopa();
@@ -1138,6 +1150,7 @@ $("btnPular").onclick=simularResto;
 $("jogos").addEventListener("click",e=>{const b=e.target.closest("[data-bat]");if(b)escolherBatedor(+b.dataset.bat);});
 $("formacao").onchange=novoJogo; $("modo").onchange=novoJogo;
 $("estilo").onchange=()=>{S.style=$("estilo").value;render();};
+$("nomeTime").oninput=render;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.sel!=null||S.mover!=null)){S.sel=null;S.mover=null;render();}});
 novoJogo();
 </script>
