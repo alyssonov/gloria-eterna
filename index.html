@@ -199,13 +199,11 @@ footer{color:var(--nevoa);font-size:12.5px}
 .modal-caixa{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;background:var(--arquibancada);border:1px solid var(--borda);border-radius:10px;padding:16px}
 .modal-titulo{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;margin:0;line-height:1}
 .modal img{width:100%;height:auto;max-height:62vh;object-fit:contain;border-radius:6px;background:var(--noite)}
-.modal-caixa.campeao{position:relative;max-width:420px;padding:32px 44px;text-align:center;border-color:var(--ouro);background:linear-gradient(135deg,#4f3912,#141210)}
+.modal-caixa.campeao{max-width:420px;padding:32px 44px;text-align:center;border-color:var(--ouro);background:linear-gradient(135deg,#4f3912,#141210)}
 .campeao .modal-titulo{color:var(--ouro);font-size:34px;text-wrap:balance}
 .campeao p{margin:0}
 .campeao .parabens{display:block;font-size:1.4em;margin-bottom:.1em}
 .campeao .acoes{justify-content:center}
-.fechar-x{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:0;border-radius:6px;color:var(--prata);font-size:28px;line-height:1;cursor:pointer}
-.fechar-x:hover{color:var(--ouro)}
 .marca h1 span,.ano,.veredito.ouro h3,.campeao .modal-titulo{background:var(--ouro-metal);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ano,.veredito.ouro h3,.campeao .modal-titulo{padding-block:.14em;margin-block:-.14em}
 .dica:empty,#sorteado:empty,.modal[hidden]{display:none}
@@ -277,7 +275,6 @@ footer{color:var(--nevoa);font-size:12.5px}
 
   <div class="modal" id="modalCampeao" hidden role="dialog" aria-modal="true" aria-labelledby="t-campeao">
     <div class="modal-caixa campeao">
-      <button class="fechar-x" id="btnNovaCarreira" aria-label="Fechar e começar uma nova carreira">×</button>
       <h2 class="modal-titulo" id="t-campeao"><span class="parabens">Parabéns!</span> Você conquistou a Glória Eterna</h2>
       <p id="campeaoTime"></p>
       <div class="acoes"><button class="btn" id="btnVerCampanha">Ver campanha</button></div>
@@ -288,11 +285,9 @@ footer{color:var(--nevoa);font-size:12.5px}
     <div class="modal-caixa">
       <h2 class="modal-titulo" id="t-modal">Sua campanha</h2>
       <img id="imgCampanha" alt="Imagem com o resultado, os jogos e a escalação da sua campanha">
-      <p class="dica">No celular, também dá para tocar e segurar a imagem para salvar.</p>
       <p class="dica" id="avisoImg" aria-live="polite"></p>
       <div class="acoes">
         <button class="btn principal" id="btnEnviar">Compartilhar</button>
-        <button class="btn" id="btnBaixar">Baixar imagem</button>
         <button class="btn" id="btnFechar">Fechar</button>
       </div>
     </div>
@@ -1007,7 +1002,7 @@ function fimCopa(){
   $("btnDenovo").onclick=novaCarreira;
   $("btnMesmo").onclick=()=>mostrar(simular());
   $("btnCompartilhar").onclick=()=>abrirCompartilhar(sim);
-  if(!sim.fimFase){$("campeaoTime").textContent=`${sim.me.nome} levantou a taça da Libertadores.`;$("modalCampeao").hidden=false;$("btnNovaCarreira").focus();}
+  if(!sim.fimFase){$("campeaoTime").textContent=`${sim.me.nome} levantou a taça da Libertadores.`;$("modalCampeao").hidden=false;$("btnVerCampanha").focus();}
 }
 function novaCarreira(){$("modalCampeao").hidden=true;novoJogo();window.scrollTo({top:0,behavior:reduz?"auto":"smooth"});}
 function verCampanha(){$("modalCampeao").hidden=true;$("btnDenovo").focus();}
@@ -1030,10 +1025,8 @@ function resumo(sim){
 async function imagemCampanha(sim){
   try{await Promise.all(['900 80px "Big Shoulders Display"','800 40px "Big Shoulders Display"','500 26px Archivo','600 26px Archivo','400 20px "DM Mono"'].map(f=>document.fonts.load(f)));}catch(e){}
   const R=resumo(sim), js=R.js;
-  const W=1080, P=64, CW=W-2*P;
-  const alt=j=>(j.agg||j.final)?84:62;
+  const W=1080, H=1440, P=56, CW=W-2*P; // 3:4, o formato de foto do celular
   const jogs=[...sim.me.players].sort((a,b)=>ORDEM[a.pos]-ORDEM[b.pos]);
-  const H=P+290+90+150+56+js.reduce((s,j)=>s+alt(j),0)+70+56+Math.ceil(jogs.length/2)*58+110;
   const c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d");
   const cor={noite:"#0a0a0a",sup:"#151413",borda:"#33302b",prata:"#f6f4ef",nevoa:"#a29a8c",ouro:"#e5aa37",v:"#5fd38d",e:"#c7cbe0",d:"#ff7a6b"};
   const metal=(a,b)=>{const g=x.createLinearGradient(0,a,0,b);g.addColorStop(0,"#fbec70");g.addColorStop(.52,"#e5aa37");g.addColorStop(1,"#a8701f");return g;};
@@ -1047,58 +1040,58 @@ async function imagemCampanha(sim){
   let y=P;
   // cabeçalho
   x.textBaseline="alphabetic"; x.textAlign="left";
-  esp("6px"); x.font=F.mono(22); x.fillStyle=cor.ouro; x.fillText("GLÓRIA ETERNA · COPA LIBERTADORES",P,y+22); esp("0px");
-  y+=40;
-  let tam=120; const tit=R.titulo.toUpperCase();
+  esp("6px"); x.font=F.mono(20); x.fillStyle=cor.ouro; x.fillText("GLÓRIA ETERNA · COPA LIBERTADORES",P,y+20); esp("0px");
+  y+=34;
+  let tam=104; const tit=R.titulo.toUpperCase();
   do{x.font=F.disp(900,tam);tam-=4;}while(x.measureText(tit).width>CW&&tam>40);
   y+=tam; x.fillStyle=R.campeao?metal(y-tam,y):cor.prata; x.fillText(tit,P,y);
-  y+=60; x.font=F.body(600,36); x.fillStyle=cor.prata; x.fillText(corta(sim.me.nome,CW),P,y);
-  y+=44; x.font=F.mono(22); x.fillStyle=cor.nevoa;
+  y+=52; x.font=F.body(600,34); x.fillStyle=cor.prata; x.fillText(corta(sim.me.nome,CW),P,y);
+  y+=38; x.font=F.mono(20); x.fillStyle=cor.nevoa;
   x.fillText(`${S.formation} · ${ESTILO_NOME[S.style]} · entrosamento ${Math.round(sim.me.ent*100)}%${R.posGrupo?` · ${R.posGrupo}º no grupo`:""}`,P,y);
-  y=P+290;
+  y=300;
   // campanha em quadradinhos
   const q=58, gap=(CW-13*q)/12;
   R.res.forEach((r,i)=>{const bx=P+i*(q+gap); x.fillStyle=cor[r]; x.beginPath(); x.roundRect?x.roundRect(bx,y,q,q,8):x.rect(bx,y,q,q); x.fill();
     x.fillStyle=r==="v"?"#0b2a17":r==="e"?"#1b1e2c":"#3a0d08"; x.font=F.disp(800,32); x.textAlign="center"; x.fillText(r.toUpperCase(),bx+q/2,y+q/2+12); x.textAlign="left";});
   for(let i=R.res.length;i<13;i++){const bx=P+i*(q+gap); x.strokeStyle=cor.borda; x.lineWidth=2; x.strokeRect(bx+1,y+1,q-2,q-2);}
-  y+=90;
+  y=376;
   // números
   const blocos=[["CAMPANHA",`${R.v}V ${R.e}E ${R.d}D`],["GOLS",`${R.gp} pró · ${R.gc} contra`],["ARTILHEIRO",R.top?`${R.top[0]} · ${R.top[1]}`:"ninguém marcou"]];
   const bw=[.24,.32,.44];
-  let bx=P; blocos.forEach(([l,v],i)=>{esp("3px");x.font=F.mono(18);x.fillStyle=cor.nevoa;x.fillText(l,bx,y+20);esp("0px");
-    x.font=F.disp(800,44);x.fillStyle=cor.prata;x.fillText(corta(v,CW*bw[i]-20),bx,y+72);bx+=CW*bw[i];});
-  y+=150;
-  // jogos
-  esp("3px"); x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText("JOGOS",P,y); esp("0px"); y+=20;
+  let bx=P; blocos.forEach(([l,v],i)=>{esp("3px");x.font=F.mono(17);x.fillStyle=cor.nevoa;x.fillText(l,bx,y+18);esp("0px");
+    x.font=F.disp(800,40);x.fillStyle=cor.prata;x.fillText(corta(v,CW*bw[i]-20),bx,y+62);bx+=CW*bw[i];});
+  // duas colunas: jogos à esquerda, escalação à direita, na mesma altura
+  const topo=490, altura=862, colE=590, colD=P+colE+28;
+  esp("3px"); x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText("JOGOS",P,topo-14); x.fillText("ESCALAÇÃO",colD,topo-14); esp("0px");
   const locTxt={casa:"casa",fora:"fora",neutro:"neutro"};
+  const hJ=Math.min(altura/js.length,110);
+  y=topo;
   js.forEach(j=>{
-    const h=alt(j);
-    x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(P,y+.5); x.lineTo(W-P,y+.5); x.stroke();
-    const r=resJogo(j);
-    x.font=F.mono(20); x.fillStyle=cor.prata; x.fillText(j.fase.replace("Grupos · ","Grupo ").replace(" rodada","").replace("Final · jogo único","Final"),P,y+30);
-    x.fillStyle=cor.nevoa; x.font=F.mono(17); x.fillText(locTxt[j.local],P,y+52);
-    x.font=F.disp(900,46); x.fillStyle=cor[r]; x.textAlign="center"; x.fillText(`${j.ga}–${j.gb}`,P+320,y+44); x.textAlign="left";
-    x.font=F.body(600,27); x.fillStyle=cor.prata; x.fillText(corta(j.adv.nome,CW-420),P+410,y+38);
-    if(j.agg||j.final){
-      const n=[]; if(j.agg)n.push(`agregado ${j.agg[0]}–${j.agg[1]}`); if(j.prorr)n.push("prorrogação"); if(j.pen)n.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+    x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(P,y+.5); x.lineTo(P+colE,y+.5); x.stroke();
+    const r=resJogo(j), cy=y+(hJ-66)/2;
+    x.font=F.mono(17); x.fillStyle=cor.prata; x.fillText(j.fase.replace("Grupos · ","Grupo ").replace(" rodada","").replace("Final · jogo único","Final").replace("Semifinal","Semi"),P,cy+28);
+    x.fillStyle=cor.nevoa; x.font=F.mono(15); x.fillText(locTxt[j.local],P,cy+50);
+    x.font=F.disp(900,40); x.fillStyle=cor[r]; x.textAlign="center"; x.fillText(`${j.ga}–${j.gb}`,P+205,cy+44); x.textAlign="left";
+    const nota=j.agg||j.final;
+    x.font=F.body(600,24); x.fillStyle=cor.prata; x.fillText(corta(j.adv.nome,colE-252),P+252,nota?cy+28:cy+40);
+    if(nota){
+      const n=[]; if(j.agg)n.push(`agreg. ${j.agg[0]}–${j.agg[1]}`); if(j.prorr)n.push("prorr."); if(j.pen)n.push(`pên. ${j.pen[0]}–${j.pen[1]}`);
       n.push(j.final?(j.passou?"CAMPEÃO":"vice"):(j.passou?"classificado":"eliminado"));
-      x.font=F.mono(19); x.fillStyle=j.passou?cor.ouro:cor.d; x.fillText(corta(n.join(" · "),CW-420),P+410,y+68);
+      x.font=F.mono(15); x.fillStyle=j.passou?cor.ouro:cor.d; x.fillText(corta(n.join(" · "),colE-252),P+252,cy+52);
     }
-    y+=h;
+    y+=hJ;
   });
-  y+=70;
-  // escalação
-  esp("3px"); x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText("ESCALAÇÃO",P,y); esp("0px"); y+=24;
-  const colW=CW/2;
+  const hE=altura/jogs.length;
   jogs.forEach((p,i)=>{
-    const cx=P+(i%2)*colW, cy=y+Math.floor(i/2)*58+34;
-    x.font=F.mono(18); x.fillStyle=cor.nevoa; x.fillText(POS[p.pos],cx,cy);
-    x.font=F.body(600,25); x.fillStyle=p.r>=LENDA?cor.ouro:cor.prata; const nm=corta(p.name,colW-200); x.fillText(nm,cx+62,cy);
-    const w=x.measureText(nm).width; x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText(corta(`${p.club} ${String(p.y).slice(2)}`,colW-90-w-20),cx+62+w+12,cy);
+    const ey=topo+i*hE;
+    x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(colD,ey+.5); x.lineTo(W-P,ey+.5); x.stroke();
+    x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText(POS[p.pos],colD,ey+34);
+    x.font=F.body(600,24); x.fillStyle=p.r>=LENDA?cor.ouro:cor.prata; x.fillText(corta(p.name,W-P-colD-56),colD+56,ey+34);
+    x.font=F.mono(15); x.fillStyle=cor.nevoa; x.fillText(corta(`${p.club} ${String(p.y).slice(2)}`,W-P-colD-56),colD+56,ey+60);
   });
-  y+=Math.ceil(jogs.length/2)*58+40;
   // rodapé
-  x.fillStyle=cor.ouro; x.fillRect(P,y,CW,2); y+=44;
+  y=topo+altura+14;
+  x.fillStyle=cor.ouro; x.fillRect(P,y,CW,2); y+=42;
   x.font=F.mono(22); x.fillStyle=cor.prata; x.textAlign="center"; x.fillText(`Monte o seu time: ${SITE}`,W/2,y); x.textAlign="left";
   return c;
 }
@@ -1111,28 +1104,22 @@ async function abrirCompartilhar(sim){
     $("imgCampanha").src=S.imgUrl;
     const file=new File([blob],"gloria-eterna.png",{type:"image/png"});
     S.imgFile=file;
-    $("btnEnviar").hidden=!(navigator.canShare&&navigator.canShare({files:[file]}));
     $("avisoImg").textContent="";
     $("modal").hidden=false; $("btnFechar").focus();
   }catch(e){$("avisoImg").textContent="Não foi possível gerar a imagem neste navegador.";}
   bt.disabled=false; bt.textContent="Compartilhar resultado";
 }
 async function enviarImagem(){
+  if(!(navigator.canShare&&navigator.canShare({files:[S.imgFile]}))){$("avisoImg").textContent="Este navegador não abre o compartilhamento. Tente pelo celular.";return;}
   try{await navigator.share({files:[S.imgFile],title:"Glória Eterna",text:`Minha campanha na Glória Eterna. Monte o seu: https://${SITE}/`});}
-  catch(e){if(e.name!=="AbortError")$("avisoImg").textContent="O compartilhamento não abriu. Baixe a imagem e envie pelo app.";}
-}
-function baixarImagem(){
-  const a=document.createElement("a"); a.href=S.imgUrl; a.download="gloria-eterna.png"; document.body.appendChild(a); a.click(); a.remove();
-  $("avisoImg").textContent="Se o download não começar, toque e segure a imagem para salvar.";
+  catch(e){if(e.name!=="AbortError")$("avisoImg").textContent="O compartilhamento não abriu. Tente de novo.";}
 }
 function fecharModal(){$("modal").hidden=true;}
 $("btnEnviar").onclick=enviarImagem;
-$("btnBaixar").onclick=baixarImagem;
 $("btnFechar").onclick=fecharModal;
 $("modal").onclick=e=>{if(e.target===$("modal"))fecharModal();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)fecharModal();});
 
-$("btnNovaCarreira").onclick=novaCarreira;
 $("btnVerCampanha").onclick=verCampanha;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modalCampeao").hidden)verCampanha();});
 
