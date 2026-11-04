@@ -137,7 +137,6 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 
 /* Simulação */
 #simulacao[hidden]{display:none}
-#simulacao>.titulo-painel{position:sticky;top:0;z-index:5;margin:-8px -18px 0;padding:8px 18px;background:var(--arquibancada)}
 .tabela-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
 th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--borda);white-space:nowrap}
@@ -146,7 +145,6 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--nevoa
 tr.eu td{color:var(--ouro);font-weight:600}
 tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .jogos{display:flex;flex-direction:column;gap:8px}
-.jogo{scroll-margin:150px 0 16px}
 .jogo{display:grid;grid-template-columns:110px 1fr;gap:4px 14px;padding:12px;border-radius:8px;background:var(--noite);border:1px solid var(--borda);animation:surge .35s ease-out}
 @keyframes surge{from{transform:translateY(6px);opacity:.3}to{transform:none;opacity:1}}
 .fase{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa);grid-row:span 2}
@@ -204,6 +202,7 @@ footer{color:var(--nevoa);font-size:12.5px}
 .modal-caixa.campeao{position:relative;max-width:420px;padding:32px 44px;text-align:center;border-color:var(--ouro);background:linear-gradient(135deg,#4f3912,#141210)}
 .campeao .modal-titulo{color:var(--ouro);font-size:34px;text-wrap:balance}
 .campeao p{margin:0}
+.campeao .parabens{display:block;font-size:1.4em;margin-bottom:.1em}
 .campeao .acoes{justify-content:center}
 .fechar-x{position:absolute;top:4px;right:4px;width:44px;height:44px;background:none;border:0;border-radius:6px;color:var(--prata);font-size:28px;line-height:1;cursor:pointer}
 .fechar-x:hover{color:var(--ouro)}
@@ -212,10 +211,6 @@ footer{color:var(--nevoa);font-size:12.5px}
 .dica:empty,#sorteado:empty,.modal[hidden]{display:none}
 @media (max-width:860px){
   .marca p,footer{max-width:none}
-  #simulacao>.titulo-painel{display:contents}
-  .titulo-painel>.acoes{position:sticky;top:0;z-index:5;flex-wrap:nowrap;margin:-8px -18px 0;padding:8px 18px;background:var(--arquibancada)}
-  .titulo-painel>.acoes .btn{font-size:14px;padding:8px 12px}
-  .titulo-painel>.acoes .btn.principal{font-size:16px;flex:1}
   .ajustes{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}
   .ajustes .campo:first-child,.nota-modo{grid-column:1/-1}
   .ajustes select,.ajustes input{width:100%}
@@ -283,7 +278,7 @@ footer{color:var(--nevoa);font-size:12.5px}
   <div class="modal" id="modalCampeao" hidden role="dialog" aria-modal="true" aria-labelledby="t-campeao">
     <div class="modal-caixa campeao">
       <button class="fechar-x" id="btnNovaCarreira" aria-label="Fechar e começar uma nova carreira">×</button>
-      <h2 class="modal-titulo" id="t-campeao">Parabéns! Você conquistou a Glória Eterna</h2>
+      <h2 class="modal-titulo" id="t-campeao"><span class="parabens">Parabéns!</span> Você conquistou a Glória Eterna</h2>
       <p id="campeaoTime"></p>
       <div class="acoes"><button class="btn" id="btnVerCampanha">Ver campanha</button></div>
     </div>
@@ -898,14 +893,12 @@ function comecarJogo(){
   const p=S.sim.avancar(); if(!p){fimCopa();return;}
   const id="jogo"+S.k; S.k++;
   S.atual={p,id,fim:false,min:0};
-  $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,S.sim.me,id,0,true));
-  if(S.k>1)verJogo(S.atual);
+  $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,0,true));
   controles();
   rodar();
 }
 const pendente=a=>a.p.jogo.pendente&&!a.p.resolvido;
 const cobrando=a=>a&&a.batedor&&pendente(a);
-const verJogo=a=>{const el=$(a.id); if(el)el.scrollIntoView({behavior:reduz?"auto":"smooth",block:"nearest"});};
 const desenhaVivo=(a,extra)=>{const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,a.min,false,null,extra);};
 // Relógio do jogo. Para no minuto do pênalti do seu time para você escolher o batedor.
 function rodar(){
@@ -923,7 +916,6 @@ const SUSPENSE_BOLA=1500, SUSPENSE_CORRIDA=1200;
 function pedirBatedor(){
   const a=S.atual; a.escolhendo=true;
   desenhaVivo(a,htmlEscolha(a.p.jogo,S.sim.me));
-  verJogo(a);
   controles();
   const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true});
 }
@@ -960,7 +952,6 @@ function encerra(a){
   clearTimeout(S.timerPen); a.fim=true; a.penando=false;
   const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false);
   if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
-  verJogo(a);
   controles();
 }
 function disputa(a,dur){
@@ -974,11 +965,11 @@ function disputa(a,dur){
     S.timerPen=setTimeout(()=>{k++;desenha(false);S.timerPen=setTimeout(passo,k>=c.length?mostra*2:mostra);},prep);
   };
   desenha(false);
-  verJogo(a);
   S.timerPen=setTimeout(passo,mostra);
 }
 function controles(){
   const a=S.atual, bp=$("btnProximo");
+  $("btnPular").disabled=!!(a&&a.fim&&a.p.ultimo);
   bp.disabled=!!(a&&(a.escolhendo||cobrando(a)));
   if(a&&a.escolhendo)bp.textContent="Escolha o batedor";
   else if(cobrando(a))bp.textContent="Cobrança em andamento";
@@ -1001,7 +992,7 @@ function simularResto(){
   while((p=S.sim.avancar())){
     p.resolver();
     const id="jogo"+S.k; S.k++;
-    $("jogos").insertAdjacentHTML("beforeend",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
+    $("jogos").insertAdjacentHTML("afterbegin",htmlJogo(p.jogo,S.sim.me,id,undefined,false));
     if(p.tabela)$("grupo").innerHTML=htmlTabela(p.tabela);
   }
   fimCopa();
