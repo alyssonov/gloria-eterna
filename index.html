@@ -407,6 +407,21 @@ footer{color:var(--nevoa);font-size:12.5px}
   .bola{width:32px;height:32px;font-size:14px}
 }
 </style>
+<style id="ajustesCelular">
+/* Celular: 66 placas sempre em 6 colunas e 11 linhas */
+@media (max-width:999px){.base{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+  /* Botões principais de lado a lado, como "Trocar campeão" */
+  #btnRolar,#btnTrocar,#btnAleatorio,#btnSimular{flex:1 1 100%;width:100%}
+  /* Time fechado: campo, médias e botão juntos, cabendo na altura da tela. As dicas descem. */
+  .time-completo .gramado{margin-inline:auto;width:min(100%,max(200px,calc((100vh - 150px)*68/90)));width:min(100%,max(200px,calc((100dvh - 150px)*68/90)))}
+  .time-completo .forca{order:2}
+  .time-completo .acoes{order:3}
+  .time-completo .dica-campo{order:4}
+}
+/* Celular deitado: campo pequeno, jogadores compactos para os nomes não se encostarem */
+@media (max-width:999px) and (max-height:500px){.time-completo .vaga{width:48px;gap:1px}.time-completo .vaga .origem{display:none}.time-completo .vaga .nome{max-width:48px;font-size:9px;line-height:1.05}.time-completo .bola{width:26px;height:26px;font-size:12px}}
+</style>
 </head>
 <body>
 
@@ -438,7 +453,7 @@ footer{color:var(--nevoa);font-size:12.5px}
       <p class="dica-campo time-fechado" id="avisoFechado" hidden>Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</p>
       <div class="forca" id="forca"></div>
       <div class="acoes">
-        <button class="btn principal" id="btnSimular" disabled>Disputar a Libertadores</button>
+        <button class="btn principal" id="btnSimular" disabled>Iniciar campanha</button>
         <div class="campo"><label for="velocidade">Velocidade</label>
           <select id="velocidade"><option value="12000">Lenta</option><option value="6000" selected>Normal</option><option value="2000">Rápida</option><option value="0">Instantânea</option></select></div>
         <button class="btn" id="btnRecomecar">Recomeçar</button>
@@ -678,6 +693,8 @@ function alvos(p,origem){
 }
 function elegivel(p){return !S.used.has(p.name)&&alvos(p,null).length>0;}
 
+// Celular, time fechado: enquadra do campo até o botão de iniciar a campanha.
+function rolaTimeFechado(){if(!matchMedia("(max-width:999px)").matches)return;const g=$("gramado").getBoundingClientRect(),b=$("btnSimular").getBoundingClientRect(),vh=window.visualViewport?visualViewport.height:innerHeight;window.scrollTo({top:scrollY+g.top-Math.max(8,(vh-(b.bottom-g.top))/2),behavior:reduz?"auto":"smooth"});}
 const rolaCelular=(el,block)=>{if(el&&matchMedia("(max-width:860px)").matches)el.scrollIntoView({behavior:reduz?"auto":"smooth",block});};
 // No modo Presidente as trocas são infinitas: só vêm elencos com alguém que dá para comprar e, quando acabam, os campeões voltam ao sorteio.
 function proximoCampeao(){
@@ -725,7 +742,7 @@ function montarAleatorio(){
   novoJogo();
   sorteiaTime().forEach(({p,c},i)=>{S.slots[i].player={...p,club:c.t,y:c.y};S.used.add(p.name);S.drawn.add(c.i);if(S.presidente)S.din-=preco(p.r);});
   S.picks=S.slots.length; S.iniciado=true; S.aleatorio=true;
-  render(); rolaCelular($("btnSimular"),"center");
+  render(); rolaTimeFechado();
 }
 
 function selecionar(idx){
@@ -742,7 +759,7 @@ function cliqueVaga(i){
     if(a.tipo==="empurra"){S.slots[a.dest].player=s.player;}
     if(S.presidente)S.din-=preco(p.r);
     s.player={...p,club:c.t,y:c.y}; S.used.add(p.name); S.current=null; S.sel=null; S.picks++; S.ultimo=i;
-    setTimeout(()=>{if(completo())rolaCelular($("btnSimular"),"center");else rolaCelular($("painelSorteio"),"start");},450);
+    setTimeout(()=>{if(completo())rolaTimeFechado();else rolaCelular($("painelSorteio"),"start");},450);
     render(); return;
   }
   if(S.mover!=null){
@@ -830,8 +847,8 @@ function render(){
   const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
   $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>${S.presidente?`<span>Saldo <b>${reais(S.din)}</b></span>`:""}`
      :(escondido()?`<span>Modo técnico: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>${S.presidente?`Você tem ${reais(S.din)} para comprar os 11 jogadores.`:"Sorteie um campeão para escalar o primeiro jogador."}</span>`);
-  $("btnSimular").disabled=!completo()||S.campanha;
-  $("btnRecomecar").disabled=S.encerrada;$("velocidade").disabled=S.encerrada||!completo();
+  $("btnSimular").disabled=!completo()||S.campanha;document.querySelector('section[aria-labelledby="t-esc"]').classList.toggle("time-completo",completo());
+  $("btnRecomecar").disabled=S.encerrada||!S.iniciado;$("velocidade").disabled=S.encerrada||!completo();
   // base
   const b=$("base");
   if(!b.children.length) b.innerHTML=CHAMPS.map(c=>`<div class="placa" title="${esc(c.t)} ${c.y}">${c.y}</div>`).join("");
