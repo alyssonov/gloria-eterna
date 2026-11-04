@@ -275,6 +275,138 @@ footer{color:var(--nevoa);font-size:12.5px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&display=swap">
+<style id="layout3colunas">
+/* Computador em 3 colunas, sem rolar a página. Esquerda: título e sorteio. Centro: ajustes, campo, pênaltis e parabéns. Direita: jogos, a única parte que rola. */
+/* Bola na trave: chega ao poste e volta para o campo */
+@keyframes rebote{from{left:var(--bx);top:var(--by)}to{left:var(--rx);top:80%}}
+.penal.natrave.batida:not(.fixa) .bp{animation:rebote .4s ease-in .45s forwards}
+.penal.natrave.batida.fixa .bp{left:var(--rx);top:80%}
+@media (min-width:1000px) and (min-height:560px){
+  html,body{height:100%;overflow:hidden}
+  .wrap{max-width:none;height:100%;padding:16px 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.45fr) minmax(0,1fr);gap:20px}
+  .col{min-height:0;height:100%;display:flex;flex-direction:column;gap:12px}
+  /* Direita: só esta coluna rola. Barra de rolagem na beira da tela e 24px entre ela e o conteúdo */
+  .colD{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent;margin-right:-24px;padding-right:24px;margin-block:-16px;height:calc(100% + 32px);padding-block:16px}
+  #simulacao{flex:none}
+  #simulacao .titulo-painel{position:sticky;top:-18px;z-index:5;background:var(--arquibancada);padding-block:6px;margin-top:-6px}
+  #simulacao .titulo-painel{flex-wrap:wrap;align-items:center}
+  #barraJogo{display:contents}
+  #btnPular{order:1;margin-left:auto;padding:6px 12px}
+  #btnProximo{order:2;flex:1 1 100%;font-size:17px;padding:8px 14px}
+  .colD .jogo{grid-template-columns:1fr}
+  .colD .fase{grid-row:auto}
+  .colD .disputa,.colD .aviso{grid-column:auto}
+  footer{flex:none;font-size:11px;line-height:1.3;max-width:none}
+  footer .redes{margin-top:6px;font-size:12.5px}
+  footer .redes svg{width:15px;height:15px}
+  footer .redes .icone-x{width:12.5px;height:12.5px;margin:1.25px}
+  footer .redes a{padding:3px;margin:-3px 0}
+  footer .redes a:first-child{margin-left:-3px}
+  /* Centro: ajustes em cima; o campo ocupa o espaço que sobrar */
+  .colC{overflow:hidden;padding:4px;margin:-4px;height:calc(100% + 8px)}
+  .ajustes{display:grid;grid-template-columns:1.5fr auto auto auto;gap:6px 10px;flex:none}
+  .ajustes .campo input,.ajustes .campo select{width:100%}
+  .nota-modo{grid-column:1/-1;padding-top:0;font-size:12px;line-height:1.35;text-align:right}
+  /* O campo usa toda a altura; médias, dicas e botões ficam ao lado dele */
+  .colC .painel{flex:1 1 0;min-height:0;padding:10px 14px;container-type:size;display:grid;grid-template-columns:minmax(0,1fr) 186px;grid-template-rows:auto auto auto auto 1fr;gap:8px 12px;align-content:start}
+  .colC .titulo-painel{grid-column:1/-1}
+  .gramado{grid-column:1;grid-row:2/-1;justify-self:center;align-self:start;height:auto;width:min(calc(100cqw - 198px),calc((100cqh - 46px)*68/90));aspect-ratio:68/90}
+  .colC .dica-campo{grid-column:2;padding:5px 8px;font-size:11.5px;line-height:1.3}
+  .colC .forca{grid-column:2;display:flex;flex-direction:column;gap:2px;font-size:12px}
+  .colC .acoes{grid-column:2;grid-row:-2;align-self:end;display:grid;grid-template-columns:1fr;gap:8px;align-items:end}
+  #btnSimular{order:2;font-size:15px;padding:9px 6px;white-space:normal;line-height:1.05}
+  .colC .acoes .campo select{width:100%;padding:6px 4px;font-size:13px}
+  #btnRecomecar{order:3;margin:0;padding:10px 8px;font-size:15px;width:100%}
+  .colC .acoes .campo{order:1}
+  .so-desktop{display:none}
+  .vaga{width:80px}
+  .vaga .nome,.vaga .origem{max-width:80px}
+  .vaga .nome{font-size:11px}
+  .vaga .origem{font-size:9px}
+  .bola{width:38px;height:38px;font-size:16px}
+  .time-fechado:not([hidden]){display:block}
+  /* Esquerda: título e sorteio ocupam a tela inteira, sem rolar */
+  .colE{overflow:hidden;padding:4px;margin:-4px;height:calc(100% + 8px)}
+  .marca{flex:none;padding-top:.3em}
+  .marca h1{font-size:clamp(36px,3.6vw,60px)}
+  .marca p{max-width:none;font-size:13px;line-height:1.4;margin-top:4px}
+  #painelSorteio{flex:1 1 0;min-height:0;gap:8px;padding:10px 14px}
+  #painelSorteio .titulo-painel h2{font-size:24px}
+  #painelSorteio .base{flex:none;grid-template-columns:repeat(11,minmax(0,1fr));gap:3px;padding:5px}
+  #painelSorteio{--ano:12px}
+  #painelSorteio .placa{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:calc(var(--ano)*1.22);line-height:1.2;padding:3px 0;letter-spacing:.01em}
+  #painelSorteio .acoes{flex:none;gap:6px;flex-wrap:wrap}
+  #painelSorteio .acoes .btn{padding:10px 10px;font-size:14px;white-space:nowrap;flex:1 1 auto}
+  #painelSorteio .acoes .btn.principal{font-size:18px;padding:10px 10px}
+  #sorteado{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+  .sorteado{flex:1 1 0;min-height:0;gap:6px}
+  .sorteado-topo{gap:10px;flex-wrap:nowrap;flex:none;align-items:center}
+  .sorteado .ano{font-size:38px}
+  .sorteado .clube{font-size:22px}
+  .sorteado .dica{margin:0;font-size:12px;flex:none}
+  .elenco{flex:1 1 0;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:4px}
+  .jog{padding:3px 8px;gap:6px;min-height:0;overflow:hidden}
+  .jog .pos{font-size:9.5px;min-width:30px;padding:1px 3px}
+  .jog .n{font-size:12px;line-height:1.12}
+  .jog .n small{font-size:9.5px;line-height:1.1}
+  .jog .nota{font-size:12px;line-height:1.15}
+  .jog .preco{font-size:10px}
+  /* Pênalti aparece no centro, sobre o campo */
+  .jogo.vivo>.disputa{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:min(560px,36vw);max-height:92vh;overflow:auto;margin:0;
+    padding:18px;background:var(--noite);border:2px solid var(--ouro);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.75)}
+  .jogo.vivo>.disputa .penal{max-width:none;height:230px}
+}
+/* Telas médias: uma linha por jogador, porque as regras ocupam o pé da coluna */
+@media (min-width:1000px) and (min-height:560px) and (max-height:1000px){
+  #painelSorteio>.rotulo,.sorteado .dica{display:none}
+  #painelSorteio{gap:6px;padding:8px 12px}
+  #painelSorteio .base{gap:2px;padding:4px}
+  #painelSorteio{--ano:11.5px}
+  #painelSorteio .placa{padding:2px 0;line-height:1}
+  #painelSorteio .acoes{gap:4px}
+  #painelSorteio .acoes .btn{padding:8px 8px;font-size:13px}
+  #painelSorteio .acoes .btn.principal{font-size:16px;padding:8px 8px}
+  .sorteado .ano{font-size:30px}
+  .sorteado .clube{font-size:19px}
+  .jog{padding:1px 7px}
+  .jog .n{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jog .n small{display:none}
+  .jog .nota{white-space:nowrap}
+  .jog .preco{display:inline;margin-left:4px}
+}
+/* Telas baixas: o texto do título sai para o sorteio caber sem rolar */
+@media (min-width:1000px) and (min-height:560px) and (max-height:760px){
+  .marca p{display:none}
+  .marca h1{font-size:34px}
+  footer{font-size:10px;line-height:1.2}
+  footer .redes{margin-top:3px;font-size:11px}
+  .col{gap:6px}
+  .sorteado .ano{font-size:26px}
+  .sorteado .clube{font-size:17px}
+  .sorteado .pais{font-size:10px}
+  #painelSorteio .titulo-painel h2{font-size:20px}
+  #painelSorteio{padding:8px 12px;gap:6px}
+  #painelSorteio .base{gap:2px;padding:4px}
+  #painelSorteio{--ano:10.5px}
+  #painelSorteio .placa{padding:1px 0;line-height:1}
+  .jog{padding:1px 6px;gap:5px}
+  .jog .n{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jog .n small{display:none}
+  .jog .pos{font-size:8.5px;min-width:26px}
+  .jog .nota{white-space:nowrap}
+  .jog .preco{display:inline;margin-left:4px}
+  .nota-modo{font-size:11px;line-height:1.25}
+  .colC .dica-campo{font-size:10.5px;line-height:1.2;padding:3px 6px}
+  .colC .painel{gap:5px 10px;padding:6px 12px}
+  .colC .titulo-painel h2{font-size:22px}
+  .vaga{width:68px}
+  .vaga .nome,.vaga .origem{max-width:68px}
+  .vaga .nome{font-size:10px}
+  .vaga .origem{font-size:8px}
+  .bola{width:32px;height:32px;font-size:14px}
+}
+</style>
 </head>
 <body>
 
@@ -699,7 +831,7 @@ function render(){
   $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>${S.presidente?`<span>Saldo <b>${reais(S.din)}</b></span>`:""}`
      :(escondido()?`<span>Modo técnico: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>${S.presidente?`Você tem ${reais(S.din)} para comprar os 11 jogadores.`:"Sorteie um campeão para escalar o primeiro jogador."}</span>`);
   $("btnSimular").disabled=!completo()||S.campanha;
-  ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
+  $("btnRecomecar").disabled=S.encerrada;$("velocidade").disabled=S.encerrada||!completo();
   // base
   const b=$("base");
   if(!b.children.length) b.innerHTML=CHAMPS.map(c=>`<div class="placa" title="${esc(c.t)} ${c.y}">${c.y}</div>`).join("");
@@ -707,7 +839,7 @@ function render(){
   // botões
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
-  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||!$("nomeTime").value.trim();
+  $("btnAleatorio").textContent=S.aleatorio?"Trocar time aleatório":"Montar time aleatório";$("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.presidente?`Saldo ${reais(S.din)}`:S.alm?"Modo técnico":"Modo torcedor";
@@ -1005,16 +1137,16 @@ function htmlEscolha(p,me){
 }
 // Goleiro e bola no campinho. Sem c, fica a cena parada; com c, as variáveis levam cada um até o lance.
 function cenaPen(p,c,batida){
-  let v="";
+  let v="",trave=false;
   if(c){
     const mesmo=c.cb===c.cg, gx=[30,50,70][c.cg], gr=[-60,0,60][c.cg];
     let bx,by;
     if(c.gol){bx=(mesmo?[20,50,80]:[26,50,74])[c.cb];by=mesmo?20:28;}
     else if(mesmo){bx=gx;by=38;}
-    else{bx=[7,50,93][c.cb];by=[22,2,22][c.cb];}
-    v=` style="--bx:${bx}%;--by:${by}%;--gx:${gx}%;--gr:${gr}deg"`;
+    else{bx=[15,50,85][c.cb];by=[36,2,36][c.cb];}
+    v=` style="--bx:${bx}%;--by:${by}%;--gx:${gx}%;--gr:${gr}deg;--rx:${c.cb===0?32:68}%"`;trave=!c.gol&&!mesmo&&c.cb!==1;
   }
-  return `<div class="penal${batida?" batida":""}"${v}><div class="trave"></div><div class="gl${p.meu?"":" meu"}"></div><div class="bp"></div></div>`;
+  return `<div class="penal${batida?" batida fixa":""}${trave?" natrave":""}"${v}><div class="trave"></div><div class="gl${p.meu?"":" meu"}"></div><div class="bp"></div></div>`;
 }
 function htmlCanto(p,quem,j,me){
   const titulo=p.meu?`Onde ${esc(quem.name)} vai bater?`:`${p.m?`Pênalti contra ${esc(me.nome)} aos ${p.m}'! `:""}${esc(quem.name)} (${esc(j.adv.nome)}) vai bater. Para onde o goleiro pula?`;
@@ -1344,6 +1476,24 @@ $("estilo").onchange=()=>{S.style=$("estilo").value;render();};
 $("nomeTime").oninput=render;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.sel!=null||S.mover!=null)){S.sel=null;S.mover=null;render();}});
 novoJogo();
+// Computador: separa a página em 3 colunas. Em telas menores volta ao layout normal, sem perder o jogo em andamento.
+(function(){
+  const mq=matchMedia("(min-width:1000px) and (min-height:560px)");
+  const w=document.querySelector(".wrap"),header=document.querySelector("header"),main=document.querySelector("main");
+  const col=n=>{const d=document.createElement("div");d.className="col "+n;return d;};
+  const E=col("colE"),C=col("colC"),D=col("colD");
+  const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
+  const modais=[$("modalCampeao"),$("modal")];
+  const regras=ft.firstChild, longo=regras.nodeValue;
+  const curto="Elencos com os 11 titulares de cada campeão. Escalações e notas de força (60 a 99) são aproximações de fã, não dados oficiais; lendas, com nota 90 ou mais, aparecem em dourado. Jogadores do mesmo clube e, em menor grau, da mesma década aumentam o entrosamento. Jogar em casa ajuda. Empate no agregado vai direto para os pênaltis; a final é em campo neutro, com prorrogação. Em qualquer jogo pode haver expulsão e pênalti: você escolhe quem bate e o canto, ou para onde o goleiro pula.";
+  let atual=null;
+  function arruma(){
+    if(mq.matches===atual)return; atual=mq.matches;
+    if(mq.matches){E.append(marca,sor,ft);C.append(aj,esc);D.append(sim);w.replaceChildren(E,C,D,...modais);regras.nodeValue=curto;}
+    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);regras.nodeValue=longo;}
+  }
+  mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
+})();
 </script>
 </body>
 </html>
