@@ -474,7 +474,7 @@ function cliqueVaga(i){
   if(s.player){S.mover=i;render();}
 }
 
-function minhaLista(){return S.slots.filter(s=>s.player).map(s=>({pos:s.pos,r:efetiva(s),name:s.player.name,club:s.player.club,y:s.player.y}));}
+function minhaLista(){return S.slots.filter(s=>s.player).map(s=>({pos:s.pos,r:efetiva(s),base:s.player.r,name:s.player.name,club:s.player.club,y:s.player.y}));}
 function forcaTime(players){
   const by={G:[],D:[],M:[],A:[]}; players.forEach(p=>by[p.pos].push(p.r));
   const all=players.map(p=>p.r); const avgAll=all.reduce((a,b)=>a+b,0)/all.length;
@@ -587,8 +587,10 @@ function marcador(players,rng,fora){
   const ps=fora?players.filter(p=>!fora.has(p.name)):players;
   return sorteiaPeso(ps,p=>({G:0,D:.6,M:2.5,A:5}[p.pos])*Math.pow(p.r/80,3),rng).name;
 }
+// Na batida vale a nota original: jogar fora de posição não muda a cobrança.
+const notaPen=p=>p.base??p.r;
 // O goleiro só bate se você escolher: a simulação e os adversários usam o melhor jogador de linha.
-function melhorBatedor(op){return op.filter(p=>p.pos!=="G").sort((a,b)=>b.r-a.r)[0]||op[0];}
+function melhorBatedor(op){return op.filter(p=>p.pos!=="G").sort((a,b)=>notaPen(b)-notaPen(a))[0]||op[0];}
 // Ordem de cobrança: os cinco melhores de linha (o craque bate a quinta), depois o resto e o goleiro por último. Expulsos não batem.
 function batedores(t,fora){
   const peso={A:3,M:2,D:0}, ps=t.players.filter(p=>!fora||!fora.has(p.name));
@@ -634,7 +636,7 @@ function jogar(A,B,rng,mando,final){
   ["a","b"].forEach(l=>{
     if(rng()>=CHANCE_PENALTI)return;
     const X=lados[l], Y=lados[outro[l]], m=entre(1,90,rng), u=rng(), fx=fora(l,m);
-    const opcoes=X.players.filter(p=>!(fx&&fx.has(p.name))).sort((a,b)=>b.r-a.r);
+    const opcoes=X.players.filter(p=>!(fx&&fx.has(p.name))).sort((a,b)=>notaPen(b)-notaPen(a));
     const pen={m,u,lado:l,gk:Y.gk||80,opcoes,meu:!!X.eu};
     if(X.eu)r.pendente=pen; else cobrar(r,pen,melhorBatedor(opcoes));
   });
@@ -642,7 +644,7 @@ function jogar(A,B,rng,mando,final){
   return r;
 }
 function cobrar(r,pen,quem){
-  const chance=chancePen(quem.r,pen.gk), gol=pen.u<chance;
+  const chance=chancePen(notaPen(quem),pen.gk), gol=pen.u<chance;
   pen.cobrado={quem:quem.name,gol,chance};
   if(gol)r.gols.push({m:String(pen.m),quem:quem.name,meu:pen.meu,lado:pen.lado,pen:true});
   else r.eventos.push({m:String(pen.m),tipo:"perdido",quem:quem.name,meu:pen.meu,lado:pen.lado});
@@ -800,7 +802,7 @@ function htmlAviso(j,me,gs,evs,min){
 function htmlEscolha(j,me){
   const p=j.pendente, oculto=escondido();
   return `<div class="disputa escolha"><div class="narra prep">Pênalti para ${esc(me.nome)} aos ${p.m}'! Quem vai bater?</div>
-  <div class="batedores">${p.opcoes.map((x,i)=>`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>${POS[x.pos]}${oculto?"":` · nota ${x.r} · ${Math.round(chancePen(x.r,p.gk)*100)}% de chance`}</small></button>`).join("")}</div></div>`;
+  <div class="batedores">${p.opcoes.map((x,i)=>`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>${POS[x.pos]}${oculto?"":` · nota ${notaPen(x)} · ${Math.round(chancePen(notaPen(x),p.gk)*100)}% de chance`}</small></button>`).join("")}</div></div>`;
 }
 function htmlCobranca(j){
   const c=j.pendente.cobrado;
