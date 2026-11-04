@@ -19,7 +19,7 @@
 <meta name="twitter:title" content="Glória Eterna">
 <meta name="twitter:description" content="Monte seu time com campeões da Libertadores e conquiste a Glória Eterna.">
 <meta name="twitter:image" content="https://gloriaeterna.online/og.jpg">
-<link rel="icon" type="image/png" href="https://gloriaeterna.online/icone.png">
+<link rel="icon" type="image/png" href="https://gloriaeterna.online/icone.png?v=2">
 <link rel="apple-touch-icon" href="https://gloriaeterna.online/icone.png">
 <style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 <title>Glória Eterna</title>
@@ -193,6 +193,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .cv{display:inline-block;width:8px;height:11px;border-radius:1.5px;background:var(--cartao);margin-right:4px;vertical-align:-1px}
 .gols-lista .cv{margin:0 0 0 6px}
 .gols-lista .perdido{color:var(--nevoa);font-style:italic}
+.gols-lista .perdido.meu{color:var(--prata)}
 #mata:empty{display:none}
 .aviso{grid-column:2;font-size:14px;font-weight:600;padding:6px 10px;border-radius:6px;background:var(--arquibancada);border-left:3px solid var(--ouro)}
 .aviso.bom{border-left-color:var(--vitoria)}
@@ -874,7 +875,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
 }
 function htmlLances(gs,evs,vivo){
   const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
-    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido">${e.m}' ${esc(e.quem)} perdeu pênalti</span>`}))]
+    ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido${e.meu?" meu":""}">${e.m}' ${esc(e.quem)} perdeu pênalti</span>`}))]
     .sort((a,b)=>ordMin(a.m)-ordMin(b.m));
   if(!it.length)return `<span>${vivo?"Bola rolando":"Sem gols"}</span>`;
   if(!gs.length&&!vivo)it.unshift({h:"<span>Sem gols</span>"});
