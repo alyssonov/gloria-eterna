@@ -102,6 +102,8 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 @keyframes pulsa{50%{transform:scale(1.1)}}
 .dica-campo{font-size:13px;margin:0;padding:8px 10px;border-radius:6px;background:var(--noite);border:1px solid var(--borda);color:var(--nevoa)}
 .dica-campo b{color:var(--prata)}
+.time-fechado{display:none;border-left:3px solid var(--ouro);color:var(--prata)}
+@media (max-width:860px){.time-fechado:not([hidden]){display:block}.so-desktop{display:none}}
 .bola{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;
   background:rgba(10,10,10,.55);border:2px dashed rgba(255,255,255,.55);color:#fff}
 .vaga.cheia .bola{background:var(--prata);color:var(--noite);border:2px solid var(--prata)}
@@ -270,8 +272,8 @@ footer{color:var(--nevoa);font-size:12.5px}
       <div class="campo"><label for="estilo">Estilo</label>
         <select id="estilo"><option value="of">Ofensivo</option><option value="eq" selected>Equilibrado</option><option value="def">Defensivo</option></select></div>
       <div class="campo"><label for="modo">Modo</label>
-        <select id="modo"><option value="nutella">Nutella</option><option value="raiz">Raiz</option></select></div>
-      <p class="nota-modo">Raiz: esconde a força e apenas 1 troca</p>
+        <select id="modo"><option value="amador">Amador</option><option value="profissional">Profissional</option></select></div>
+      <p class="nota-modo">Profissional: esconde a força e apenas 1 troca</p>
     </div>
   </header>
 
@@ -282,6 +284,7 @@ footer{color:var(--nevoa);font-size:12.5px}
         <div class="linhas"></div><div class="area cima"></div><div class="area baixo"></div>
       </div>
       <p class="dica-campo" id="dicaCampo" hidden></p>
+      <p class="dica-campo time-fechado" id="avisoFechado" hidden>Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</p>
       <div class="forca" id="forca"></div>
       <div class="acoes">
         <button class="btn principal" id="btnSimular" disabled>Disputar a Libertadores</button>
@@ -472,7 +475,7 @@ const VEL_MIN=90;
 const S={};
 function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value;
-  S.alm=$("modo").value==="raiz";
+  S.alm=$("modo").value==="profissional";
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
   S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.campanha=false; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
@@ -596,14 +599,16 @@ function render(){
   S.ultimo=-1;
   $("contador").textContent=S.picks+"/11";
   // dica do campo
+  const BORDA="Borda tracejada: jogando fora da posição de origem (−2 de força).";
   let dica="";
-  if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"");}
-  else if(S.mover!=null){const p=S.slots[S.mover].player;dica=`Mover <b>${esc(p.name)}</b> (${posTxt(p)}): toque numa vaga destacada. Toque nele de novo para cancelar.`;}
-  else if(S.picks)dica="Toque num jogador do campo para mudar a posição dele.<br>Borda tracejada: jogando fora da posição de origem (−2 de força).";
+  if(S.sel!=null&&S.current){const p=S.current.players[S.sel];dica=`Toque numa vaga destacada para colocar <b>${esc(p.name)}</b>.`+(alvos(p,null)[0].tipo==="empurra"?" O jogador que está lá muda de posição para abrir espaço.":"")+`<br>${BORDA}`;}
+  else if(S.mover!=null){const p=S.slots[S.mover].player;dica=`Mover <b>${esc(p.name)}</b> (${posTxt(p)}): toque numa vaga destacada. Toque nele de novo para cancelar.<br>${BORDA}`;}
+  else if(S.picks)dica=`Toque num jogador do campo para mudar a posição dele.<br>${BORDA}`;
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
+  $("avisoFechado").hidden=!completo()||S.campanha;
   const f=minhaForca();
   $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
-     :(escondido()?`<span>Modo raiz: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
+     :(escondido()?`<span>Modo profissional: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
   $("btnSimular").disabled=!completo()||S.campanha;
   ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
   // base
@@ -615,10 +620,10 @@ function render(){
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=`Trocar campeão (${S.trocas})`;
-  $("trocas").textContent=S.alm?"Modo raiz":"Modo nutella";
+  $("trocas").textContent=S.alm?"Modo profissional":"Modo amador";
   // sorteado
   const box=$("sorteado");
-  if(cheio){box.innerHTML=`<div class="vazio">Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</div>`;return;}
+  if(cheio){box.innerHTML=`<div class="vazio so-desktop">Time fechado. Você ainda pode trocar jogadores de lugar para evitar que percam nota por estar fora da posição de origem.</div>`;return;}
   if(S.anim){box.innerHTML=`<div class="vazio">Sorteando…</div>`;return;}
   if(!S.current){
     box.innerHTML="";return;
@@ -894,13 +899,13 @@ function htmlLances(gs,evs,vivo){
   if(!it.length)return vivo?"<span>Bola rolando</span>":"";
   return it.map(x=>x.h).join("");
 }
-// Aviso dos últimos minutos: expulsão ou pênalti acabou de acontecer.
+// Aviso dos últimos minutos: pênalti acabou de acontecer. A expulsão aparece só na lista de lances.
 function htmlAviso(j,me,gs,evs,min){
-  const rec=[...gs.filter(g=>g.pen).map(g=>({...g,tipo:"pgol"})),...evs].filter(x=>ordMin(x.m)>min-6).sort((a,b)=>ordMin(b.m)-ordMin(a.m))[0];
+  const rec=[...gs.filter(g=>g.pen).map(g=>({...g,tipo:"pgol"})),...evs.filter(e=>e.tipo!=="vermelho")].filter(x=>ordMin(x.m)>min-6).sort((a,b)=>ordMin(b.m)-ordMin(a.m))[0];
   if(!rec)return "";
   const time=esc(rec.meu?me.nome:j.adv.nome), quem=esc(rec.quem);
   const bom=rec.tipo==="pgol"?rec.meu:!rec.meu;
-  const txt=rec.tipo==="vermelho"?`<i class="cv"></i> Cartão vermelho! ${quem} (${time}) é expulso.`:rec.tipo==="pgol"?`Pênalti para ${time}! ${quem} bate e marca.`:`Pênalti para ${time}! ${quem} perdeu.`;
+  const txt=rec.tipo==="pgol"?`Pênalti para ${time}! ${quem} bate e marca.`:`Pênalti para ${time}! ${quem} perdeu.`;
   return `<div class="aviso ${bom?"bom":"ruim"}">${rec.m}' ${txt}</div>`;
 }
 function htmlEscolha(p,me){
@@ -1057,6 +1062,7 @@ function encerra(a){
   const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false);
   if(a.p.tabela)$("grupo").innerHTML=htmlTabela(a.p.tabela);
   controles();
+  if(a.p.jogo.final&&a.p.jogo.passou)fimCopa();
 }
 function desenhaDisputa(a,miolo,vez){const el=$(a.id); if(el)el.outerHTML=htmlJogo(a.p.jogo,S.sim.me,a.id,undefined,false,{vez,miolo});}
 // Próxima cobrança da disputa: você escolhe o canto, batendo ou defendendo.
@@ -1099,6 +1105,7 @@ function simularResto(){
   fimCopa();
 }
 function fimCopa(){
+  if(S.encerrada)return;
   clearInterval(S.relogio); clearTimeout(S.timerPen);
   const sim=S.sim; sim.terminar(); $("btnProximo").disabled=false;
   $("btnProximo").hidden=true; $("btnPular").hidden=true;
