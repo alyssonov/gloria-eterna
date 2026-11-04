@@ -165,7 +165,7 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--nevoa
 tr.eu td{color:var(--ouro);font-weight:600}
 tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .jogos{display:flex;flex-direction:column;gap:8px}
-.jogo{display:grid;grid-template-columns:110px 1fr;gap:4px 14px;padding:12px;border-radius:8px;background:var(--noite);border:1px solid var(--borda);animation:surge .35s ease-out}
+.jogo{display:grid;grid-template-columns:210px 1fr;gap:4px 14px;padding:12px;border-radius:8px;background:var(--noite);border:1px solid var(--borda);animation:surge .35s ease-out}
 @keyframes surge{from{transform:translateY(6px);opacity:.3}to{transform:none;opacity:1}}
 .fase{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevoa);grid-row:span 2}
 .fase .res{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:3px;letter-spacing:0}
@@ -177,6 +177,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .placar .pen{font-family:var(--mono);font-size:12px;color:var(--ouro);font-weight:400}
 .gols-lista{font-family:var(--mono);font-size:12px;color:var(--nevoa);display:flex;flex-direction:column;gap:2px;margin-top:6px}
 .gols-lista .meu{color:var(--prata)}
+.gols-lista:empty{display:none}
 .disputa{grid-column:2;display:grid;gap:6px;margin-top:6px;padding-top:10px;border-top:1px solid var(--borda)}
 .disputa .linha{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px}
 .disputa .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--nevoa)}
@@ -429,6 +430,7 @@ const DESENHO={
   def:[[13,60],[27,76],[50,74],[73,76],[87,60],[36,56],[50,40],[64,56],[34,22],[66,22]]}
 };
 const LENDA=90;
+const PAISES={ARG:"Argentina",BRA:"Brasil",CHI:"Chile",COL:"Colômbia",EQU:"Equador",PAR:"Paraguai",URU:"Uruguai"};
 
 // RNG
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
@@ -472,7 +474,7 @@ function novoJogo(){
   S.formation=$("formacao").value; S.style=$("estilo").value;
   S.alm=$("modo").value==="raiz";
   S.slots=["G",...FORM[S.formation]].map(pos=>({pos,player:null}));
-  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.anim=false; S.ultimo=-1;
+  S.used=new Set(); S.drawn=new Set(); S.current=null; S.trocas=S.alm?1:3; S.picks=0; S.iniciado=false; S.encerrada=false; S.campanha=false; S.anim=false; S.ultimo=-1;
   S.sel=null; S.mover=null;
   S.rng=mulberry32((Math.random()*4294967296)>>>0);
   $("simulacao").hidden=true; clearTimeout(S.timer); clearTimeout(S.timerPen); clearInterval(S.relogio);
@@ -602,7 +604,7 @@ function render(){
   const f=minhaForca();
   $("forca").innerHTML=f&&!escondido()?`<span>Ataque <b>${f.att.toFixed(1)}</b></span><span>Defesa <b>${f.def.toFixed(1)}</b></span><span>Média <b>${f.ovr.toFixed(1)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>`
      :(escondido()?`<span>Modo raiz: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>Sorteie um campeão para escalar o primeiro jogador.</span>`);
-  $("btnSimular").disabled=!completo()||S.encerrada;
+  $("btnSimular").disabled=!completo()||S.campanha;
   ["velocidade","btnRecomecar"].forEach(id=>$(id).disabled=S.encerrada);
   // base
   const b=$("base");
@@ -625,7 +627,7 @@ function render(){
   const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||(escondido()?0:b.p.r-a.p.r));
   const algum=c.players.some(elegivel);
   box.innerHTML=`<div class="sorteado">
-    <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${c.c} · campeão da Libertadores</div></div></div>
+    <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${PAISES[c.c]}</div></div></div>
     ${algum?`<p class="dica">Escolha um jogador e depois a vaga no campo.</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas, nem mudando alguém de posição. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
       const motivo=S.used.has(p.name)?"já escalado":(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
@@ -866,7 +868,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   const gs=vivo?j.gols.filter(g=>ordMin(g.m)<min+1):j.gols;
   const evs=vivo?j.eventos.filter(e=>ordMin(e.m)<min+1):j.eventos;
   const ga=vivo?gs.filter(g=>g.meu).length:j.ga, gb=vivo?gs.filter(g=>!g.meu).length:j.gb;
-  const local={casa:"em casa",fora:"fora de casa",neutro:"campo neutro"}[j.local];
+  const local={casa:"casa",fora:"fora",neutro:"neutro"}[j.local];
   let estado;
   if(vivo)estado=`<span class="relogio">${min>90&&!j.prorr?"90'":min+"'"}${min>90&&j.prorr?" prorrogação":""}</span>`;
   else if(penVivo)estado=`<span class="relogio">Pênaltis</span>`;
@@ -881,7 +883,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
     }
   }
   const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
-  return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase}<br>${local}<br>${estado}</div>
+  return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase} · ${local}<br>${estado}</div>
   <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${ga} × ${gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
   <div class="gols-lista">${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
@@ -889,8 +891,7 @@ function htmlLances(gs,evs,vivo){
   const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
     ...evs.map(e=>({m:e.m,h:e.tipo==="vermelho"?`<span class="${e.meu?"meu":""}">${e.m}' ${esc(e.quem)}<i class="cv" title="Cartão vermelho"></i></span>`:`<span class="perdido${e.meu?" meu":""}">${e.m}' ${esc(e.quem)} (pênalti perdido)</span>`}))]
     .sort((a,b)=>ordMin(a.m)-ordMin(b.m));
-  if(!it.length)return `<span>${vivo?"Bola rolando":"Sem gols"}</span>`;
-  if(!gs.length&&!vivo)it.unshift({h:"<span>Sem gols</span>"});
+  if(!it.length)return vivo?"<span>Bola rolando</span>":"";
   return it.map(x=>x.h).join("");
 }
 // Aviso dos últimos minutos: expulsão ou pênalti acabou de acontecer.
@@ -970,7 +971,7 @@ function htmlVeredito(sim){
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
 function mostrar(sim){
   clearInterval(S.relogio); clearTimeout(S.timerPen);
-  S.sim=sim; S.k=0; S.atual=null; S.encerrada=false; render();
+  S.sim=sim; S.k=0; S.atual=null; S.encerrada=false; S.campanha=true; render();
   $("simulacao").hidden=false; $("veredito").innerHTML=""; $("mata").innerHTML=""; $("grupo").innerHTML=""; $("jogos").innerHTML="";
   $("btnProximo").hidden=false; $("btnPular").hidden=false;
   $("simulacao").scrollIntoView({behavior:reduz?"auto":"smooth",block:"start"});
