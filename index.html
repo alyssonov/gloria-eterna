@@ -282,7 +282,7 @@ footer{color:var(--nevoa);font-size:12.5px}
   <header>
     <div class="marca">
       <h1>Glória <span>Eterna</span></h1>
-      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a Libertadores no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos é a campanha perfeita.</p>
+      <p>Sorteie um campeão da Libertadores, escale um jogador daquele elenco e repita até fechar os 11. Depois dispute a competição no formato atual: 6 jogos na fase de grupos, oitavas, quartas e semifinal em ida e volta, e final única. Ganhar os 13 jogos é a campanha perfeita.</p>
     </div>
     <div class="ajustes">
       <div class="campo"><label for="nomeTime">Seu time</label><input type="text" id="nomeTime" maxlength="28" placeholder="Digite o nome do time"></div>
@@ -708,7 +708,7 @@ function render(){
   // botões
   const cheio=completo();
   $("btnRolar").disabled=S.anim||cheio||!!S.current||!$("nomeTime").value.trim();
-  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio);
+  $("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||(matchMedia("(max-width:860px)").matches&&!$("nomeTime").value.trim());
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.presidente?`Saldo ${reais(S.din)}`:S.alm?"Modo técnico":"Modo torcedor";
