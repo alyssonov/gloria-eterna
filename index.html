@@ -341,14 +341,16 @@ footer{color:var(--nevoa);font-size:12.5px}
   .jog .nota{font-size:12px;line-height:1.15}
   .jog .preco{font-size:10px}
   /* Pênalti aparece no centro, sobre o campo */
-  .jogo.vivo>.disputa{position:fixed;inset:0;z-index:30;width:min(560px,36vw);height:min(540px,92vh);display:flex;flex-direction:column;gap:8px;overflow:auto;margin:auto;
+  .jogo.vivo>.disputa{position:fixed;inset:0;z-index:30;width:min(560px,36vw);height:min(380px,92vh);display:flex;flex-direction:column;gap:8px;overflow:auto;margin:auto;
     padding:18px;background:var(--noite);border:2px solid var(--ouro);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.75)}
+  .jogo.vivo>.disputa:has(>.linha){height:min(436px,92vh)}
   .jogo.vivo>.disputa>.disputa{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:8px}
   .jogo.vivo>.disputa .narra{flex:none;min-height:3em;margin:0}
-  .jogo.vivo>.disputa .penal{flex:1 1 0;min-height:110px;width:100%;max-width:none;height:auto;margin:0}
+  .jogo.vivo>.disputa .penal{flex:none;width:100%;max-width:none;height:230px;margin:0}
   .jogo.vivo>.disputa .cantos.reserva{display:grid;visibility:hidden}
-  .jogo.vivo>.disputa .batedores.linhas{flex:1 1 0;min-height:0;align-content:start;grid-auto-rows:minmax(28px,38px);gap:5px}
-  .jogo.vivo>.disputa .bat.linha{padding:2px 12px;min-height:0}
+  .jogo.vivo>.disputa .batedores.linhas{flex:1 1 0;min-height:0;align-content:start;grid-auto-rows:minmax(24px,1fr);gap:3px}
+  .jogo.vivo>.disputa .bat.linha{padding:0 12px;min-height:0;font-size:14px;line-height:1.1}
+  .jogo.vivo>.disputa .bat.linha small{font-size:13px}
   .jogo.vivo>.disputa .escolha:has(.batedores) .narra,.jogo.vivo>.disputa.escolha:has(.batedores) .narra{min-height:0}
 }
 /* Telas médias: uma linha por jogador, porque as regras ocupam o pé da coluna */
