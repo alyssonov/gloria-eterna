@@ -1390,7 +1390,7 @@ function htmlPen(j,me,vez,miolo){
   const vis=(j.pen||j.disputa).cobr;
   const linha=eu=>{
     const meus=vis.filter(x=>x.eu===eu), n=meus.filter(x=>x.gol).length;
-    const total=Math.max(5,meus.length+(vez&&vez.meu===eu?1:0));
+    const total=Math.max(5,...[true,false].map(l=>vis.filter(x=>x.eu===l).length+(vez&&vez.meu===l?1:0)));
     let b="";for(let i=0;i<total;i++){const x=meus[i];
       b+=x?(x.gol?`<i class="g" title="Gol de ${esc(x.quem)}"></i>`:`<i class="x" title="${esc(x.quem)} perdeu">✕</i>`):(vez&&vez.meu===eu&&i===meus.length?`<i class="vez"></i>`:`<i></i>`);}
     return `<div class="linha${eu?" eu":""}"><span class="nome">${esc(eu?me.nome:j.adv.nome)}</span><span class="bolas">${b}</span><span class="pp">${n}</span></div>`;
