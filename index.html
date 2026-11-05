@@ -1116,6 +1116,11 @@ const CHANCE_LESAO=.02;
 // Jogos fora e peso de cada um: quanto mais longa, mais rara. Infinity é toda a campanha.
 const TEMPO_LESAO=[[1,40],[2,25],[3,15],[4,10],[5,6],[6,3],[Infinity,1]];
 const LOCAL_LESAO=["no joelho","no tornozelo","na coxa","na panturrilha","na virilha","no ombro","nas costelas","no pé"];
+// O substituto vira titular de vez: entra no campinho e na próxima Copa com este time.
+function efetivaSubstituto(sai,entra){
+  const v=S.slots.find(x=>x.player&&x.player.name===sai.name); if(!v)return;
+  v.player={...entra}; S.used.delete(sai.name); S.used.add(entra.name); render();
+}
 function opcoesSub(sai,titulares){
   const fora=new Set(titulares.map(p=>p.name)), porNome=new Map();
   const cand=CHAMPS.flatMap(c=>c.players.filter(p=>p.pos===sai.pos&&!fora.has(p.name)).map(p=>({p,c,z:Math.random()})));
@@ -1246,7 +1251,7 @@ function simular(){
     if(!fin.jogo.passou)sim.fimFase="Vice-campeão";
   }
   const it=campanha();
-  const titulares=me.players;
+  let titulares=me.players;
   const escala=ps=>Object.assign(me,{players:ps,...forcaLista(ps)});
   // Quem está fora: nome do titular -> {sai, entra, rest (jogos que ainda perde), motivo, temp (substituto do substituto, se ele for expulso)}.
   const aus=new Map();
@@ -1269,12 +1274,25 @@ function simular(){
     return l;
   };
   sim.pendentes=()=>pendentesTodos().filter(x=>!sim.escolhas.has(x.sai.name));
+  // Quem terminou de cumprir a ausência. Se o substituto acabou de ser expulso, não há o que decidir: o titular volta.
+  sim.decisoes=new Map();
+  const substitutoExpulso=a=>{const u=sim.passos[sim.passos.length-1];return !!u&&u.jogo.eventos.some(e=>e.tipo==="vermelho"&&e.meu&&e.quem===a.entra.name);};
+  sim.retornos=()=>[...aus.values()].filter(a=>a.rest<=0&&!substitutoExpulso(a)&&!sim.decisoes.has(a.sai.name));
   sim.avancar=()=>{
     const u=sim.passos[sim.passos.length-1]; if(u&&!u.resolvido)u.resolver();
     if(sim.acabou)return null;
     const novos=pendentesTodos();
     novos.forEach(x=>{if(!sim.escolhas.has(x.sai.name))sim.escolhas.set(x.sai.name,sim.opcoes(x.sai)[0]);});
-    aus.forEach((a,k)=>{if(a.temp&&a.temp.rest<=0)delete a.temp;if(a.rest<=0)aus.delete(k);});
+    aus.forEach((a,k)=>{
+      if(a.temp&&a.temp.rest<=0)delete a.temp;
+      if(a.rest>0)return;
+      if(sim.decisoes.get(a.sai.name)===false&&!substitutoExpulso(a)){
+        titulares=titulares.map(p=>p===a.sai?a.entra:p);
+        efetivaSubstituto(a.sai,a.entra);
+      }
+      aus.delete(k);
+    });
+    sim.decisoes.clear();
     novos.forEach(x=>{
       const entra=sim.escolhas.get(x.sai.name);
       if(x.aus)x.aus.temp={entra,rest:1};
@@ -1527,8 +1545,17 @@ function proximo(){
 }
 // Abre um quadro para cada ausência nova e só então começa o próximo jogo.
 function pedirSubstituto(){
+  const volta=S.sim.retornos()[0];
+  if(volta){abrirRetorno(volta);return;}
   const x=S.sim.pendentes()[0];
   if(x)abrirSub(x);else comecarJogo();
+}
+function abrirRetorno(a){
+  const box=$("opcoesSub"), cartao=(p,txt,v)=>`<button class="jog" data-volta="${v}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${txt}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.base}</span></button>`;
+  $("t-sub").innerHTML=`${esc(a.sai.name)} voltou de ${a.motivo==="lesionado"?"lesão":"suspensão"}. Deseja <span style="white-space:nowrap">colocá-lo</span> de volta no time titular?`;
+  box.innerHTML=cartao(a.sai,"Sim, volta a ser titular",1)+cartao(a.entra,"Não, continua como titular",0);
+  box.querySelectorAll("[data-volta]").forEach(b=>b.onclick=()=>{S.sim.decisoes.set(a.sai.name,b.dataset.volta==="1");$("modalSub").hidden=true;pedirSubstituto();});
+  $("modalSub").hidden=false;box.querySelector("button").focus();
 }
 function abrirSub(x){
   const sai=x.sai, ops=S.sim.opcoes(sai), box=$("opcoesSub"), cruz=`<i class="cruz" aria-label="lesionado">+</i>`;
