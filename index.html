@@ -125,7 +125,7 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .btn.principal:hover:not(:disabled){filter:brightness(1.1)}
 /* Celular: os botões do jogo ficam presos ao pé da tela, para jogar sem rolar. */
 @media (max-width:860px){
-  #barraJogo{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-wrap:nowrap;gap:8px;background:var(--noite);border-top:1px solid var(--borda);
+  #barraJogo{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-wrap:nowrap;align-items:stretch;gap:8px;background:var(--noite);border-top:1px solid var(--borda);
     padding:10px max(16px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
   #btnProximo{flex:1;min-width:0;padding-inline:10px;font-size:18px}
   #btnPular{flex:none;padding-inline:12px;white-space:nowrap}
@@ -591,6 +591,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #painelSorteio .mesa .ano{font-size:clamp(28px,2.4vw,46px)}
   #painelSorteio .mesa .clube{font-size:clamp(19px,1.65vw,32px);line-height:1;overflow-wrap:anywhere}
   #painelSorteio .mesa .sorteado-topo{gap:8px;flex-wrap:nowrap;align-items:center;min-width:0}
+  .mesa .aviso-nome{grid-column:1;grid-row:1/span 3}
+  .mesa:has(.cab) .aviso-nome{display:none}
   .mesa .jog{grid-column:1;min-height:0}
   .mesa .dica:has(#btnGratis){grid-column:1}
   .botoes{grid-column:2;grid-row:1/span 12;display:flex;flex-direction:column;justify-content:space-between;gap:6px;min-width:0}
@@ -1658,7 +1660,7 @@ function pedirSubstituto(){
 function abrirRetorno(a){
   const box=$("opcoesSub"), cartao=(p,txt,v)=>`<button class="jog" data-volta="${v}"><span class="pos pos-${p.pos}">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${txt}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.base}</span></button>`;
   $("t-sub").innerHTML=`${esc(a.sai.name)} voltou de ${a.motivo==="lesionado"?"lesão":"suspensão"}. Deseja <span style="white-space:nowrap">colocá-lo</span> de volta no time titular?`;
-  box.innerHTML=cartao(a.sai,"Sim, volta a ser titular",1)+cartao(a.entra,"Não, manter substituto",0);
+  box.innerHTML=cartao(a.sai,"Sim, voltar a ser titular",1)+cartao(a.entra,"Não, manter substituto",0);
   box.querySelectorAll("[data-volta]").forEach(b=>b.onclick=()=>{S.sim.decisoes.set(a.sai.name,b.dataset.volta==="1");$("modalSub").hidden=true;pedirSubstituto();});
   $("modalSub").hidden=false;box.querySelector("button").focus();
 }
@@ -1840,12 +1842,12 @@ novoJogo();
   const E=col("colE"),C=col("colC"),D=col("colD");
   const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
   const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
-  const sorteado=$("sorteado"),acoesSor=$("btnRolar").parentElement,mesa=document.createElement("div"),botoes=document.createElement("div"),meuT=$("meuTime"),tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");mesa.className="mesa";botoes.className="botoes";
+  const aviso=$("avisoNome"),sorteado=$("sorteado"),acoesSor=$("btnRolar").parentElement,mesa=document.createElement("div"),botoes=document.createElement("div"),meuT=$("meuTime"),tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");mesa.className="mesa";botoes.className="botoes";
   let atual=null;
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
-    if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));mesa.append(sorteado,botoes);botoes.append(acoesSor,controles);$("avisoNome").after(mesa);tituloSim.after(barra);tituloSim.append($("btnPular"));}
-    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));$("base").before($("regraModo"));infoModo.remove();esc.append(controles);$("avisoNome").after(acoesSor,sorteado);mesa.remove();posTrocar();tituloSim.append(barra);barra.append($("btnPular"));}
+    if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));mesa.append(aviso,sorteado,botoes);botoes.append(acoesSor,controles);$("base").after(mesa);tituloSim.after(barra);tituloSim.append($("btnPular"));}
+    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));$("base").before($("regraModo"));infoModo.remove();esc.append(controles);$("base").after(aviso,acoesSor,sorteado);mesa.remove();posTrocar();tituloSim.append(barra);barra.append($("btnPular"));}
   }
   mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
 })();
