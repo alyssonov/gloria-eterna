@@ -539,6 +539,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
 .opcoes-sub .jog .nota{font-size:18px}
 .opcoes-sub .jog .pos{font-size:10.5px;min-width:36px;padding:2px 5px}
 .gols-lista .sub-jogo{color:var(--ouro)}
+.cruz{display:inline-grid;place-items:center;width:1.05em;height:1.05em;margin-right:.3em;border-radius:3px;background:var(--cartao);color:#fff;font-family:var(--body);font-style:normal;font-weight:700;font-size:.9em;line-height:1;vertical-align:.08em}
+#t-sub .cruz{margin-inline:.05em .15em}
 </style>
 </head>
 <body>
@@ -1092,6 +1094,10 @@ const AJUSTE={k:10,grupos:-2.7,Oitavas:-3.6,Quartas:-3.4,Semifinal:-2.5,Final:-2
 const OITAVAS={primeiro:[.3,.7],segundo:[.6,1]};
 // A Copa anda jogo a jogo: sim.avancar() entrega o próximo jogo do seu time (resolvendo o anterior, se ficou pendente).
 // Mini sorteio do suspenso: mesma posição e mesma nota. Se faltar gente, completa com as notas mais próximas, preferindo as menores.
+const CHANCE_LESAO=.02;
+// Jogos fora e peso de cada um: quanto mais longa, mais rara. Infinity é toda a campanha.
+const TEMPO_LESAO=[[1,40],[2,25],[3,15],[4,10],[5,6],[6,3],[Infinity,1]];
+const LOCAL_LESAO=["no joelho","no tornozelo","na coxa","na panturrilha","na virilha","no ombro","nas costelas","no pé"];
 function opcoesSub(sai,titulares){
   const fora=new Set(titulares.map(p=>p.name)), porNome=new Map();
   const cand=CHAMPS.flatMap(c=>c.players.filter(p=>p.pos===sai.pos&&!fora.has(p.name)).map(p=>({p,c,z:Math.random()})));
@@ -1108,6 +1114,16 @@ function simular(){
   const adv=(lo,hi,fase)=>{let c=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>!usados.has(t.nome));
     if(!c.length)c=pool.filter(t=>!usados.has(t.nome));const t=c[Math.floor(rng()*c.length)];usados.add(t.nome);const a=AJUSTE[fase]||0;return {...t,att:t.att+a,def:t.def+a};};
   const sim={me,passos:[],fimFase:null,acabou:false};
+  const rngLesao=mulberry32((seedSim^0x85EBCA6B)>>>0);
+  const sorteiaLesao=jogo=>{
+    if(rngLesao()>=CHANCE_LESAO)return null;
+    const vermelho=jogo.eventos.find(e=>e.tipo==="vermelho"&&e.meu);
+    const op=me.players.filter(p=>titulares.includes(p)&&!(vermelho&&vermelho.quem===p.name));
+    if(!op.length)return null;
+    let x=rngLesao()*TEMPO_LESAO.reduce((a,[,w])=>a+w,0), jogos=TEMPO_LESAO[0][0];
+    for(const [n,w] of TEMPO_LESAO){if(x<w){jogos=n;break;}x-=w;}
+    return {quem:op[Math.floor(rngLesao()*op.length)],local:LOCAL_LESAO[Math.floor(rngLesao()*LOCAL_LESAO.length)],jogos};
+  };
   // Monta o jogo como o seu time vê. empate() diz se o jogo vai para a disputa de pênaltis; depois() roda quando tudo acabou.
   const montar=(r,info,depois,empate)=>{
     const jogo={...info,gols:r.gols,eventos:r.eventos,pens:r.pens,ga:0,gb:0,prorr:false,pen:null};
@@ -1117,6 +1133,7 @@ function simular(){
       passo.resolvido=true;
       if(jogo.disputa)jogo.pen=jogo.disputa.resultado();
       if(depois)depois(passo);
+      if(!passo.ultimo)jogo.lesao=sorteiaLesao(jogo);
     };
     const fechaJogo=()=>{
       if(passo.fechou)return; passo.fechou=true;
@@ -1213,20 +1230,45 @@ function simular(){
   const it=campanha();
   const titulares=me.players;
   const escala=ps=>Object.assign(me,{players:ps,...forcaLista(ps)});
-  // Titular expulso no último jogo, se houver. Reserva expulso não conta: o titular já volta no jogo seguinte.
-  sim.suspenso=()=>{
-    const u=sim.passos[sim.passos.length-1], v=u&&u.jogo.eventos.find(e=>e.tipo==="vermelho"&&e.meu);
-    return v?titulares.find(p=>p.name===v.quem)||null:null;
+  // Quem está fora: nome do titular -> {sai, entra, rest (jogos que ainda perde), motivo, temp (substituto do substituto, se ele for expulso)}.
+  const aus=new Map();
+  sim.escolhas=new Map();
+  const naoRepete=()=>[...titulares,...sim.escolhas.values(),...[...aus.values()].flatMap(a=>a.temp?[a.entra,a.temp.entra]:[a.entra])];
+  sim.opcoes=sai=>opcoesSub(sai,naoRepete());
+  const pendentesTodos=()=>{
+    const u=sim.passos[sim.passos.length-1], l=[]; if(!u)return l;
+    const v=u.jogo.eventos.find(e=>e.tipo==="vermelho"&&e.meu);
+    if(v){
+      const tit=titulares.find(p=>p.name===v.quem);
+      if(tit)l.push({sai:tit,tipo:"suspensao"});
+      else{
+        // Substituto expulso: só precisa de outro se o titular ainda não puder voltar.
+        const a=[...aus.values()].find(x=>x.rest>0&&(x.temp?x.temp.entra:x.entra).name===v.quem);
+        if(a)l.push({sai:a.temp?a.temp.entra:a.entra,tipo:"suspensao",aus:a});
+      }
+    }
+    if(u.jogo.lesao)l.push({sai:u.jogo.lesao.quem,tipo:"lesao",local:u.jogo.lesao.local,jogos:u.jogo.lesao.jogos});
+    return l;
   };
-  sim.opcoes=sai=>opcoesSub(sai,titulares);
+  sim.pendentes=()=>pendentesTodos().filter(x=>!sim.escolhas.has(x.sai.name));
   sim.avancar=()=>{
     const u=sim.passos[sim.passos.length-1]; if(u&&!u.resolvido)u.resolver();
     if(sim.acabou)return null;
-    const sai=sim.suspenso(), troca=sai?{sai,entra:sim.escolhido||sim.opcoes(sai)[0]}:null;
-    sim.escolhido=null;
-    escala(troca?titulares.map(p=>p===sai?troca.entra:p):titulares);
+    const novos=pendentesTodos();
+    novos.forEach(x=>{if(!sim.escolhas.has(x.sai.name))sim.escolhas.set(x.sai.name,sim.opcoes(x.sai)[0]);});
+    aus.forEach((a,k)=>{if(a.temp&&a.temp.rest<=0)delete a.temp;if(a.rest<=0)aus.delete(k);});
+    novos.forEach(x=>{
+      const entra=sim.escolhas.get(x.sai.name);
+      if(x.aus)x.aus.temp={entra,rest:1};
+      else aus.set(x.sai.name,{sai:x.sai,entra,rest:x.tipo==="lesao"?x.jogos:1,motivo:x.tipo==="lesao"?"lesionado":"suspenso"});
+    });
+    sim.escolhas.clear();
+    const subs=[...aus.values()].map(a=>a.temp?{sai:a.entra,entra:a.temp.entra,motivo:"suspenso"}:{sai:a.sai,entra:a.entra,motivo:a.motivo});
+    const emCampo=titulares.map(p=>{const a=aus.get(p.name);return a?(a.temp?a.temp.entra:a.entra):p;});
+    aus.forEach(a=>{a.rest--;if(a.temp)a.temp.rest--;});
+    escala(emCampo);
     const n=it.next(); if(n.done){sim.acabou=true;escala(titulares);return null;}
-    if(troca)n.value.jogo.sub=troca;
+    if(subs.length)n.value.jogo.subs=subs;
     sim.passos.push(n.value); return n.value;
   };
   sim.terminar=()=>{while(sim.avancar());};
@@ -1262,7 +1304,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
   return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase} · ${local}<br>${estado}</div>
   <div class="placar"><span>${esc(inv?j.adv.nome:me.nome)}</span><span class="gols">${inv?gb:ga} × ${inv?ga:gb}</span><span>${esc(inv?me.nome:j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
-  <div class="gols-lista">${j.sub?`<span class="sub-jogo">${esc(j.sub.entra.name)} no lugar de ${esc(j.sub.sai.name)} (suspenso)</span>`:""}${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
+  <div class="gols-lista">${(j.subs||[]).map(x=>`<span class="sub-jogo">${esc(x.entra.name)} no lugar de ${esc(x.sai.name)} (${x.motivo})</span>`).join("")}${htmlLances(gs,evs,vivo)}${j.lesao?`<span class="sub-jogo"><i class="cruz" aria-label="lesionado">+</i>${esc(j.lesao.quem.name)} se lesionou ${j.lesao.local}</span>`:""}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
 function htmlLances(gs,evs,vivo){
   const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
@@ -1462,15 +1504,19 @@ function proximo(){
   if(a&&(a.escolhendo||cobrando(a)))return;
   if(a&&!a.fim){apito();return;}
   if(a&&a.p.ultimo){fimCopa();return;}
-  const sai=S.sim.suspenso();
-  if(sai){abrirSub(sai);return;}
-  comecarJogo();
+  pedirSubstituto();
 }
-function abrirSub(sai){
-  const ops=S.sim.opcoes(sai), box=$("opcoesSub");
-  $("t-sub").textContent=`Escolha um jogador para substituir ${sai.name} no próximo jogo`;
+// Abre um quadro para cada ausência nova e só então começa o próximo jogo.
+function pedirSubstituto(){
+  const x=S.sim.pendentes()[0];
+  if(x)abrirSub(x);else comecarJogo();
+}
+function abrirSub(x){
+  const sai=x.sai, ops=S.sim.opcoes(sai), box=$("opcoesSub"), cruz=`<i class="cruz" aria-label="lesionado">+</i>`;
+  const tempo=x.jogos===Infinity?"toda a campanha":x.jogos===1?"1 jogo":`${x.jogos} jogos`;
+  $("t-sub").innerHTML=x.tipo==="lesao"?`${esc(sai.name)} ${cruz} se lesionou ${x.local} e ficará fora por ${tempo}. Escolha um jogador para substituí-lo`:`Escolha um jogador para substituir ${esc(sai.name)} no próximo jogo`;
   box.innerHTML=ops.map((p,i)=>`<button class="jog" data-sub="${i}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${esc(p.club)} ${p.y}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.r}</span></button>`).join("");
-  box.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{S.sim.escolhido=ops[+b.dataset.sub];$("modalSub").hidden=true;comecarJogo();});
+  box.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{S.sim.escolhas.set(sai.name,ops[+b.dataset.sub]);$("modalSub").hidden=true;pedirSubstituto();});
   $("modalSub").hidden=false;box.querySelector("button").focus();
 }
 // Simula o resto da Copa de uma vez, decidindo os pênaltis sem perguntar.
