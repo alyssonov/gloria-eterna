@@ -1057,7 +1057,8 @@ function render(){
   $("contador").textContent=S.picks+"/11"; desenhaMeuTime();
   
   const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
-  const mediaDA=f&&f.def!=null&&f.att!=null?Math.round((Math.round(f.def)+Math.round(f.att))/2):null;
+  // Com só um dos setores escalado, a média é a nota que já existe.
+  const notasDA=f?[f.def,f.att].filter(v=>v!=null).map(Math.round):[], mediaDA=notasDA.length?Math.round(notasDA.reduce((x,y)=>x+y,0)/notasDA.length):null;
   const medidor=(rot,v,txt)=>`<span class="medidor" style="--p:${v==null?0:Math.round(v)}"><span class="m-rot">${rot}</span><b>${txt}</b><i></i></span>`;
   $("forca").innerHTML=f&&!escondido()?medidor("Defesa",f.def,notaInt(f.def))+medidor("Ataque",f.att,notaInt(f.att))+medidor("Média",mediaDA,mediaDA==null?"–":mediaDA)+medidor("Entrosamento",f.ent*100,Math.round(f.ent*100)):"";
   $("btnSimular").disabled=!completo()||S.campanha;document.querySelector('section[aria-labelledby="t-esc"]').classList.toggle("time-completo",completo());
