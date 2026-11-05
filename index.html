@@ -531,6 +531,14 @@ select option{background:var(--arquibancada);color:var(--prata)}
 }
 .tabela-wrap th,.tabela-wrap td{text-align:center}
 .tabela-wrap th:nth-child(2),.tabela-wrap td:nth-child(2){text-align:left}
+#t-sub{font-size:24px;line-height:1.05;text-wrap:balance}
+.opcoes-sub{display:grid;gap:6px}
+.opcoes-sub .jog{padding:10px 12px;gap:10px;min-height:0;height:auto}
+.opcoes-sub .jog .n{font-size:14px;white-space:normal}
+.opcoes-sub .jog .n small{display:block;font-size:11px}
+.opcoes-sub .jog .nota{font-size:18px}
+.opcoes-sub .jog .pos{font-size:10.5px;min-width:36px;padding:2px 5px}
+.gols-lista .sub-jogo{color:var(--ouro)}
 </style>
 </head>
 <body>
@@ -590,6 +598,13 @@ select option{background:var(--arquibancada);color:var(--prata)}
     <div class="tabela-wrap" id="grupo"></div>
     <div class="jogos" id="jogos"></div>
   </section>
+
+  <div class="modal" id="modalSub" hidden role="dialog" aria-modal="true" aria-labelledby="t-sub">
+    <div class="modal-caixa">
+      <h2 class="modal-titulo" id="t-sub"></h2>
+      <div class="opcoes-sub" id="opcoesSub"></div>
+    </div>
+  </div>
 
   <div class="modal" id="modalCampeao" hidden role="dialog" aria-modal="true" aria-labelledby="t-campeao">
     <div class="modal-caixa campeao">
@@ -875,8 +890,8 @@ function forcaParcial(ps){
   return {att:nota({A:.55,M:.35,D:.10},["A","M"]),def:nota({D:.45,G:.30,M:.25},["D","G","M"])};
 }
 function forcaExibida(){const f=minhaForca(); return f&&!completo()?{...f,...forcaParcial(minhaLista())}:f;}
-function minhaForca(){
-  const ps=minhaLista(); if(!ps.length)return null;
+function minhaForca(){const ps=minhaLista();return ps.length?forcaLista(ps):null;}
+function forcaLista(ps){
   const f=forcaTime(ps);
   f.ent=entrosamento(ps);
   const pen=(1-f.ent)*4; f.att-=pen; f.def-=pen;
@@ -1076,6 +1091,14 @@ function fechar(r,rng){
 const AJUSTE={k:10,grupos:-2.7,Oitavas:-3.6,Quartas:-3.4,Semifinal:-2.5,Final:-2.5};
 const OITAVAS={primeiro:[.3,.7],segundo:[.6,1]};
 // A Copa anda jogo a jogo: sim.avancar() entrega o próximo jogo do seu time (resolvendo o anterior, se ficou pendente).
+// Mini sorteio do suspenso: mesma posição e mesma nota. Se faltar gente, completa com as notas mais próximas, preferindo as menores.
+function opcoesSub(sai,titulares){
+  const fora=new Set(titulares.map(p=>p.name)), porNome=new Map();
+  const cand=CHAMPS.flatMap(c=>c.players.filter(p=>p.pos===sai.pos&&!fora.has(p.name)).map(p=>({p,c,z:Math.random()})));
+  cand.sort((a,b)=>Math.abs(a.p.r-sai.base)-Math.abs(b.p.r-sai.base)||a.p.r-b.p.r||a.z-b.z);
+  for(const {p,c} of cand){if(!porNome.has(p.name))porNome.set(p.name,{pos:p.pos,r:p.r,base:p.r,name:p.name,club:c.t,y:c.y});if(porNome.size===4)break;}
+  return [...porNome.values()];
+}
 function simular(){
   const me={eu:true,nome:$("nomeTime").value.trim()||"Seu time",players:minhaLista(),...minhaForca()};
   const seedSim=(Math.random()*4294967296)>>>0;
@@ -1188,10 +1211,22 @@ function simular(){
     if(!fin.jogo.passou)sim.fimFase="Vice-campeão";
   }
   const it=campanha();
+  const titulares=me.players;
+  const escala=ps=>Object.assign(me,{players:ps,...forcaLista(ps)});
+  // Titular expulso no último jogo, se houver. Reserva expulso não conta: o titular já volta no jogo seguinte.
+  sim.suspenso=()=>{
+    const u=sim.passos[sim.passos.length-1], v=u&&u.jogo.eventos.find(e=>e.tipo==="vermelho"&&e.meu);
+    return v?titulares.find(p=>p.name===v.quem)||null:null;
+  };
+  sim.opcoes=sai=>opcoesSub(sai,titulares);
   sim.avancar=()=>{
     const u=sim.passos[sim.passos.length-1]; if(u&&!u.resolvido)u.resolver();
     if(sim.acabou)return null;
-    const n=it.next(); if(n.done){sim.acabou=true;return null;}
+    const sai=sim.suspenso(), troca=sai?{sai,entra:sim.escolhido||sim.opcoes(sai)[0]}:null;
+    sim.escolhido=null;
+    escala(troca?titulares.map(p=>p===sai?troca.entra:p):titulares);
+    const n=it.next(); if(n.done){sim.acabou=true;escala(titulares);return null;}
+    if(troca)n.value.jogo.sub=troca;
     sim.passos.push(n.value); return n.value;
   };
   sim.terminar=()=>{while(sim.avancar());};
@@ -1227,7 +1262,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
   return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase} · ${local}<br>${estado}</div>
   <div class="placar"><span>${esc(inv?j.adv.nome:me.nome)}</span><span class="gols">${inv?gb:ga} × ${inv?ga:gb}</span><span>${esc(inv?me.nome:j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
-  <div class="gols-lista">${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
+  <div class="gols-lista">${j.sub?`<span class="sub-jogo">${esc(j.sub.entra.name)} no lugar de ${esc(j.sub.sai.name)} (suspenso)</span>`:""}${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
 function htmlLances(gs,evs,vivo){
   const it=[...gs.map(g=>({m:g.m,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
@@ -1427,7 +1462,16 @@ function proximo(){
   if(a&&(a.escolhendo||cobrando(a)))return;
   if(a&&!a.fim){apito();return;}
   if(a&&a.p.ultimo){fimCopa();return;}
+  const sai=S.sim.suspenso();
+  if(sai){abrirSub(sai);return;}
   comecarJogo();
+}
+function abrirSub(sai){
+  const ops=S.sim.opcoes(sai), box=$("opcoesSub");
+  $("t-sub").textContent=`Escolha um jogador para substituir ${sai.name} no próximo jogo`;
+  box.innerHTML=ops.map((p,i)=>`<button class="jog" data-sub="${i}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${esc(p.club)} ${p.y}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.r}</span></button>`).join("");
+  box.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{S.sim.escolhido=ops[+b.dataset.sub];$("modalSub").hidden=true;comecarJogo();});
+  $("modalSub").hidden=false;box.querySelector("button").focus();
 }
 // Simula o resto da Copa de uma vez, decidindo os pênaltis sem perguntar.
 function simularResto(){
@@ -1597,7 +1641,7 @@ novoJogo();
   const col=n=>{const d=document.createElement("div");d.className="col "+n;return d;};
   const E=col("colE"),C=col("colC"),D=col("colD");
   const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
-  const modais=[$("modalCampeao"),$("modal")];
+  const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
   let atual=null;
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
