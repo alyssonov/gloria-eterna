@@ -164,7 +164,6 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 
 /* Simulação */
 #simulacao[hidden]{display:none}
-.tabela-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
 th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--borda);white-space:nowrap}
 th:nth-child(2),td:nth-child(2){text-align:left}
@@ -396,7 +395,36 @@ footer{color:var(--nevoa);font-size:12.5px}
 }
 </style>
 <style id="ajustesCelular">
-.aviso-nome{margin:0;font-weight:600;font-size:14px;color:var(--ouro)}
+.aviso-nome{margin:0;font-family:var(--mono);font-size:13px;color:var(--nevoa)}
+/* Quadrados de força com barrinha de porcentagem */
+#forca{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#forca:empty{display:none}
+.medidor{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:3px 8px;padding:6px 9px 8px;background:var(--noite);border:1px solid var(--borda);border-radius:8px}
+.m-rot{font-size:12px;color:var(--nevoa);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.medidor b{font-family:var(--display);font-weight:800;font-size:20px;line-height:1;color:var(--prata)}
+.medidor i{grid-column:1/-1;height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.medidor i::before{content:"";display:block;height:100%;width:calc(var(--p)*1%);border-radius:2px;background:var(--ouro)}
+/* Saldo e valor do jogador em caixinha verde */
+.titulo-grupo{display:flex;align-items:center;gap:10px}
+.saldo,.jog .preco{display:inline-block;margin:0;border-radius:4px;background:var(--vitoria);color:#0b2a17;font-family:var(--mono);font-weight:500;white-space:nowrap}
+.saldo{padding:2px 8px;font-size:14px;line-height:1.3}
+.jog .preco{padding:0 5px;font-size:11px;line-height:1.5}
+.jog .nota{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
+/* Tabela do grupo sempre inteira: sem barra de rolagem; se faltar largura, GP e GC saem e fica só o SG */
+.tabela-wrap{container-type:inline-size}
+.tabela-wrap td:nth-child(2){white-space:normal;overflow-wrap:anywhere}
+@container (max-width:480px){
+  .tabela-wrap th,.tabela-wrap td{padding:6px 4px;font-size:12.5px}
+  .tabela-wrap th{font-size:11px;letter-spacing:.04em}
+}
+@container (max-width:345px){
+  .tabela-wrap th:nth-child(8),.tabela-wrap td:nth-child(8),.tabela-wrap th:nth-child(9),.tabela-wrap td:nth-child(9){display:none}
+}
+/* Celular bem estreito: "Entrosamento" inteiro no quadrado */
+@media (max-width:400px){.m-rot{font-size:11px}.medidor{padding-inline:7px;column-gap:4px}}
+@media (max-width:340px){.m-rot{font-size:10px}.medidor b{font-size:17px}}
+/* Duas colunas com pouca altura: rótulo em cima do número */
+@media (min-width:861px) and (max-width:999px) and (max-height:500px){.medidor{grid-template-columns:minmax(0,1fr);padding:3px 7px 5px;row-gap:1px}.m-rot{font-size:10px}.medidor b{font-size:15px}}
 .regra-modo{margin:0;font-size:13px;line-height:1.3;color:var(--prata)}
 /* Computador: nenhum jogador fica cortado. Se a tela for muito baixa, a coluna da esquerda rola em vez de esconder texto. */
 @media (min-width:1000px) and (min-height:560px){
@@ -405,7 +433,10 @@ footer{color:var(--nevoa);font-size:12.5px}
   #sorteado,.sorteado{flex:1 0 auto}
   .elenco{flex:1 0 auto;grid-auto-rows:minmax(20px,1fr)}
   .marca,footer{flex:none}
-  .aviso-nome{font-size:13px}
+  .aviso-nome{font-size:12px}
+  #forca{grid-column:2;grid-template-columns:minmax(0,1fr);gap:4px}
+  .medidor{padding:3px 8px 5px;gap:2px 8px}
+  .medidor b{font-size:17px}
   .regra-modo{grid-column:1/-1;font-size:13.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .colC .painel{grid-template-rows:auto auto auto auto auto 1fr}
   .gramado{grid-row:3/-1;width:min(calc(100cqw - 198px),calc((100cqh - 74px)*68/90))}
@@ -425,13 +456,13 @@ footer{color:var(--nevoa);font-size:12.5px}
   /* Botões principais de lado a lado, como "Trocar campeão" */
   #btnRolar,#btnTrocar,#btnAleatorio,#btnSimular{flex:1 1 100%;width:100%}
   /* Time fechado: campo, médias e botão juntos, cabendo na altura da tela. As dicas descem. */
-  .time-completo .gramado{margin-inline:auto;width:min(100%,max(200px,calc((100vh - 150px)*68/90)));width:min(100%,max(200px,calc((100dvh - 150px)*68/90)))}
+  .time-completo .gramado{margin-inline:auto;width:min(100%,max(200px,calc((100vh - 190px)*68/90)));width:min(100%,max(200px,calc((100dvh - 190px)*68/90)))}
   .time-completo .forca{order:2}
   .time-completo .acoes{order:3}
   .time-completo .dica-campo{order:4}
 }
 /* Celular deitado: campo pequeno, jogadores compactos para os nomes não se encostarem */
-@media (max-width:999px) and (max-height:500px){.time-completo .vaga{width:48px;gap:1px}.time-completo .vaga .origem{display:none}.time-completo .vaga .nome{max-width:48px;font-size:9px;line-height:1.05}.time-completo .bola{width:26px;height:26px;font-size:12px}}
+@media (max-width:999px) and (max-height:500px){#forca{grid-template-columns:repeat(4,minmax(0,1fr))}.time-completo .gramado{width:min(100%,max(170px,calc((100vh - 135px)*68/90)));width:min(100%,max(170px,calc((100dvh - 135px)*68/90)))}.time-completo .vaga{width:48px;gap:1px}.time-completo .vaga .origem{display:none}.time-completo .vaga .nome{max-width:48px;font-size:9px;line-height:1.05}.time-completo .bola{width:26px;height:26px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -470,7 +501,7 @@ footer{color:var(--nevoa);font-size:12.5px}
     </section>
 
     <section class="painel" aria-labelledby="t-sorteio" id="painelSorteio">
-      <div class="titulo-painel"><h2 id="t-sorteio">Sorteio</h2><span class="contador" id="trocas"></span></div>
+      <div class="titulo-painel"><div class="titulo-grupo"><h2 id="t-sorteio">Sorteio</h2><span class="saldo" id="saldo" aria-label="Saldo disponível" hidden></span></div><span class="contador" id="trocas"></span></div>
       <p class="regra-modo" id="regraModo" aria-live="polite"></p>
       <div class="base" id="base" aria-hidden="true"></div>
       <p class="aviso-nome" id="avisoNome">Escolha o nome do seu time para iniciar</p>
@@ -649,7 +680,7 @@ const ALT={
 const ALT_LATERAL={"Leonardo":"E","Gabriel Menino":"R"};
 CHAMPS.forEach(c=>c.players.forEach(p=>{const defensor=SETOR[p.pos]==="D";
   p.todas=[p.pos,...[...(ALT[p.name]||"")].filter(x=>x!==p.pos&&!(x==="D"&&defensor)).map(x=>x==="D"?ALT_LATERAL[p.name]||"Z":x)];}));
-const posTxt=p=>p.todas.map(x=>POS[x]).join("/");
+const posTxt=p=>POS[p.pos];
 const pode=(p,pos)=>p.todas.includes(pos);
 const efetiva=s=>s.player.r;
 const VEL_MIN=90;
@@ -856,8 +887,8 @@ function render(){
   $("dicaCampo").innerHTML=dica; $("dicaCampo").hidden=!dica;
   
   const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
-  $("forca").innerHTML=f&&!escondido()?`<span>Defesa <b>${notaInt(f.def)}</b></span><span>Ataque <b>${notaInt(f.att)}</b></span><span>Média <b>${Math.round(f.ovr)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}%</b></span>${S.presidente?`<span>Saldo <b>${reais(S.din)}</b></span>`:""}`
-     :(escondido()?`<span>Modo técnico: força escondida até fechar os 11. Só 1 troca de sorteio.</span>`:`<span>${S.presidente?`Você tem ${reais(S.din)} para comprar os 11 jogadores.`:"Sorteie um campeão para escalar o primeiro jogador."}</span>`);
+  const medidor=(rot,v,txt)=>`<span class="medidor" style="--p:${v==null?0:Math.round(v)}"><span class="m-rot">${rot}</span><b>${txt}</b><i></i></span>`;
+  $("forca").innerHTML=f&&!escondido()?medidor("Defesa",f.def,notaInt(f.def))+medidor("Ataque",f.att,notaInt(f.att))+medidor("Média",f.ovr,Math.round(f.ovr))+medidor("Entrosamento",f.ent*100,Math.round(f.ent*100)+"%"):"";
   $("btnSimular").disabled=!completo()||S.campanha;document.querySelector('section[aria-labelledby="t-esc"]').classList.toggle("time-completo",completo());
   $("btnRecomecar").disabled=S.encerrada||!S.iniciado;$("velocidade").disabled=S.encerrada||!completo();
   // base
@@ -872,7 +903,8 @@ function render(){
   $("btnAleatorio").textContent=S.aleatorio?"Trocar time aleatório":"Montar time aleatório";$("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
-  $("trocas").textContent=S.presidente?`Saldo ${reais(S.din)}`:S.alm?"Modo técnico":"Modo torcedor";
+  $("trocas").textContent=S.presidente?"Modo presidente":S.alm?"Modo técnico":"Modo torcedor";
+  $("saldo").hidden=!S.presidente;$("saldo").textContent=reais(S.din);
   // sorteado
   const box=$("sorteado");
   if(cheio){box.innerHTML="";return;}
@@ -889,7 +921,7 @@ function render(){
     <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
       const semDinheiro=S.presidente&&!ok&&!S.used.has(p.name)&&alvosSemDinheiro(p,null).length>0, resta=S.slots.filter(s=>!s.player).length-1;
       const motivo=S.used.has(p.name)?"já escalado":semDinheiro?(resta?`guarde dinheiro para ${resta===1?"a outra vaga":`as outras ${resta} vagas`}`:"sem dinheiro"):(ok&&alvos(p,null)[0].tipo==="empurra"?"cabe mudando alguém de posição":"");
-      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${escondido()?"?":p.r}${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}</span></button>`;}).join("")}</div></div>`;
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
