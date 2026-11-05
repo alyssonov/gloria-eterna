@@ -569,11 +569,11 @@ select option{background:var(--arquibancada);color:var(--prata)}
   /* 2ª coluna: ajustes fixos em cima e só os jogos rolam */
   .colD{overflow:hidden;padding:5px;margin:-5px;height:calc(100% + 10px)}
   #simulacao{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent;scrollbar-gutter:stable both-edges;padding-inline:8px}
-  /* A barra de rolagem reserva o mesmo espaço dos dois lados, para os jogos ficarem centralizados entre as bordas. O título rola com a coluna; só os botões do jogo ficam presos no topo. */
-  #simulacao .titulo-painel{display:contents}
+  /* A barra de rolagem reserva o mesmo espaço dos dois lados, para os jogos ficarem centralizados entre as bordas. O título e Simular tudo rolam com a coluna; só o botão do jogo fica preso no topo. */
+  #simulacao .titulo-painel{position:static;margin:0;padding:0;flex-wrap:nowrap;align-items:center}
   #barraJogo{display:flex;position:sticky;top:-18px;z-index:5;flex-wrap:nowrap;gap:8px;align-items:stretch;background:var(--arquibancada);padding-block:6px;margin-block:-6px}
-  #btnProximo{order:1;flex:1 1 auto;margin:0}
-  #btnPular{order:2;flex:none;margin:0}
+  #btnProximo{flex:1 1 100%;margin:0}
+  #btnPular{flex:none;margin:0 0 0 auto}
   /* 3ª coluna: campo com as médias embaixo, em uma linha */
   .colC .painel{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
   .colC .titulo-painel{grid-column:1}
@@ -586,12 +586,12 @@ select option{background:var(--arquibancada);color:var(--prata)}
   .modo-info{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
   .modo-info .regra-modo{font-size:12.5px;line-height:1.25;white-space:normal;overflow:visible}
   /* Velocidade, Iniciar campanha e Reiniciar debaixo de Montar time aleatório */
-  #painelSorteio .acoes.controles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);gap:6px;align-items:end}
+  #painelSorteio .acoes.controles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:end}
   .controles .campo{order:1;min-width:0;gap:2px}
   .controles .campo label{font-size:10px}
   .controles .campo select{width:100%;height:40px;padding:6px 22px 6px 8px;font-size:13px;background-position:right 8px center}
-  #painelSorteio .controles #btnSimular{order:2}
-  #painelSorteio .controles #btnRecomecar{order:3}
+  #painelSorteio .controles #btnSimular{order:3;grid-column:1/-1}
+  #painelSorteio .controles #btnRecomecar{order:2}
   #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
   /* Jogadores do campeão sorteado: nome maior para facilitar a leitura */
   .jog{gap:8px}
@@ -612,6 +612,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
 .veredito>.acoes .btn.principal{font-size:16px}
 @media (max-width:420px){.veredito>.acoes .btn{font-size:12.5px;padding:6px 4px}.veredito>.acoes .btn.principal{font-size:14px}}
 @media (min-width:1000px) and (max-width:1200px){.veredito>.acoes{gap:5px}.veredito>.acoes .btn{font-size:11.5px;padding:6px 2px}.veredito>.acoes .btn.principal{font-size:13px}}
+/* Celular: Montar outro time sozinho em cima, na largura toda; os outros dois lado a lado */
+@media (max-width:999px),(max-height:559px){.veredito>.acoes{grid-template-columns:repeat(2,minmax(0,1fr))}.veredito>.acoes .btn{font-size:15px;padding:8px 6px}.veredito>.acoes .btn.principal{order:-1;grid-column:1/-1;font-size:18px;min-height:52px}}
 </style>
 </head>
 <body>
@@ -1664,7 +1666,8 @@ function resumo(sim){
 async function imagemCampanha(sim){
   try{await Promise.all(['900 80px "Big Shoulders Display"','800 40px "Big Shoulders Display"','500 26px Archivo','600 26px Archivo','400 20px "DM Mono"'].map(f=>document.fonts.load(f)));}catch(e){}
   const R=resumo(sim), js=R.js;
-  const W=1080, H=1440, P=56, CW=W-2*P; // 3:4, o formato de foto do celular
+  const quad=matchMedia("(min-width:1000px) and (min-height:560px)").matches; // computador: quadrada; celular: 3:4, o formato de foto
+  const W=1080, H=quad?1080:1440, P=56, CW=W-2*P;
   const jogs=[...sim.me.players].sort((a,b)=>ORDEM[a.pos]-ORDEM[b.pos]);
   const c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d");
   const cor={noite:"#0a0a0a",sup:"#151413",borda:"#33302b",prata:"#f6f4ef",nevoa:"#a29a8c",ouro:"#e5aa37",v:"#5fd38d",e:"#c7cbe0",d:"#ff7a6b"};
@@ -1681,42 +1684,42 @@ async function imagemCampanha(sim){
   x.textBaseline="alphabetic"; x.textAlign="left";
   esp("6px"); x.font=F.mono(20); x.fillStyle=cor.ouro; x.fillText("GLÓRIA ETERNA · COPA LIBERTADORES",P,y+20); esp("0px");
   y+=34;
-  let tam=104; const tit=R.titulo.toUpperCase();
+  let tam=quad?76:104; const tit=R.titulo.toUpperCase();
   do{x.font=F.disp(900,tam);tam-=4;}while(x.measureText(tit).width>CW&&tam>40);
   y+=tam; x.fillStyle=R.campeao?metal(y-tam,y):cor.prata; x.fillText(tit,P,y);
-  y+=52; x.font=F.body(600,34); x.fillStyle=cor.prata; x.fillText(corta(sim.me.nome,CW),P,y);
-  y+=38; x.font=F.mono(20); x.fillStyle=cor.nevoa;
+  y+=quad?42:52; x.font=F.body(600,quad?30:34); x.fillStyle=cor.prata; x.fillText(corta(sim.me.nome,CW),P,y);
+  y+=quad?30:38; x.font=F.mono(quad?19:20); x.fillStyle=cor.nevoa;
   x.fillText(`${S.formation} · ${ESTILO_NOME[S.style]} · entrosamento ${Math.round(sim.me.ent*100)}${R.posGrupo?` · ${R.posGrupo}º no grupo`:""}`,P,y);
-  y=300;
+  y=quad?246:300;
   // campanha em quadradinhos
-  const q=58, gap=(CW-13*q)/12;
+  const q=quad?50:58, gap=(CW-13*q)/12;
   R.res.forEach((r,i)=>{const bx=P+i*(q+gap); x.fillStyle=cor[r]; x.beginPath(); x.roundRect?x.roundRect(bx,y,q,q,8):x.rect(bx,y,q,q); x.fill();
-    x.fillStyle=r==="v"?"#0b2a17":r==="e"?"#1b1e2c":"#3a0d08"; x.font=F.disp(800,32); x.textAlign="center"; x.fillText(r.toUpperCase(),bx+q/2,y+q/2+12); x.textAlign="left";});
+    x.fillStyle=r==="v"?"#0b2a17":r==="e"?"#1b1e2c":"#3a0d08"; x.font=F.disp(800,quad?28:32); x.textAlign="center"; x.fillText(r.toUpperCase(),bx+q/2,y+q/2+(quad?10:12)); x.textAlign="left";});
   for(let i=R.res.length;i<13;i++){const bx=P+i*(q+gap); x.strokeStyle=cor.borda; x.lineWidth=2; x.strokeRect(bx+1,y+1,q-2,q-2);}
-  y=376;
+  y=quad?304:376;
   // números
   const blocos=[["CAMPANHA",`${R.v}V ${R.e}E ${R.d}D`],["GOLS",`${R.gp} pró · ${R.gc} contra`],["ARTILHEIRO",R.top?`${R.top[0]} · ${R.top[1]}`:"ninguém marcou"]];
   const bw=[.24,.32,.44];
-  let bx=P; blocos.forEach(([l,v],i)=>{esp("3px");x.font=F.mono(17);x.fillStyle=cor.nevoa;x.fillText(l,bx,y+18);esp("0px");
-    x.font=F.disp(800,40);x.fillStyle=cor.prata;x.fillText(corta(v,CW*bw[i]-20),bx,y+62);bx+=CW*bw[i];});
+  let bx=P; blocos.forEach(([l,v],i)=>{esp("3px");x.font=F.mono(17);x.fillStyle=cor.nevoa;x.fillText(l,bx,y+(quad?16:18));esp("0px");
+    x.font=F.disp(800,quad?34:40);x.fillStyle=cor.prata;x.fillText(corta(v,CW*bw[i]-20),bx,y+(quad?52:62));bx+=CW*bw[i];});
   // duas colunas: jogos à esquerda, escalação à direita, na mesma altura
-  const topo=490, altura=862, colE=590, colD=P+colE+28;
+  const topo=quad?392:490, altura=quad?608:862, colE=590, colD=P+colE+28;
   esp("3px"); x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText("JOGOS",P,topo-14); x.fillText("ESCALAÇÃO",colD,topo-14); esp("0px");
   const locTxt={casa:"casa",fora:"fora",neutro:"neutro"};
   const hJ=Math.min(altura/js.length,110);
   y=topo;
   js.forEach(j=>{
     x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(P,y+.5); x.lineTo(P+colE,y+.5); x.stroke();
-    const r=resJogo(j), cy=y+(hJ-66)/2;
-    x.font=F.mono(17); x.fillStyle=cor.prata; x.fillText(j.fase.replace("Grupos · ","Grupo ").replace(" rodada","").replace("Final · jogo único","Final").replace("Semifinal","Semi"),P,cy+28);
-    x.fillStyle=cor.nevoa; x.font=F.mono(15); x.fillText(locTxt[j.local],P,cy+50);
-    x.font=F.disp(900,40); x.fillStyle=cor[r]; x.textAlign="center"; x.fillText(`${j.ga}–${j.gb}`,P+205,cy+44); x.textAlign="left";
+    const r=resJogo(j), cy=y+(hJ-(quad?46:66))/2;
+    x.font=F.mono(quad?15:17); x.fillStyle=cor.prata; x.fillText(j.fase.replace("Grupos · ","Grupo ").replace(" rodada","").replace("Final · jogo único","Final").replace("Semifinal","Semi"),P,cy+(quad?19:28));
+    x.fillStyle=cor.nevoa; x.font=F.mono(quad?13:15); x.fillText(locTxt[j.local],P,cy+(quad?37:50));
+    x.font=F.disp(900,quad?34:40); x.fillStyle=cor[r]; x.textAlign="center"; x.fillText(`${j.ga}–${j.gb}`,P+205,cy+(quad?34:44)); x.textAlign="left";
     const nota=j.agg||j.final;
-    x.font=F.body(600,24); x.fillStyle=cor.prata; x.fillText(corta(j.adv.nome,colE-252),P+252,nota?cy+28:cy+40);
+    x.font=F.body(600,quad?22:24); x.fillStyle=cor.prata; x.fillText(corta(j.adv.nome,colE-252),P+252,cy+(nota?(quad?19:28):(quad?31:40)));
     if(nota){
       const n=[]; if(j.agg)n.push(`agreg. ${j.agg[0]}–${j.agg[1]}`); if(j.prorr)n.push("prorr."); if(j.pen)n.push(`pên. ${j.pen[0]}–${j.pen[1]}`);
       n.push(j.final?(j.passou?"CAMPEÃO":"vice"):(j.passou?"classificado":"eliminado"));
-      x.font=F.mono(15); x.fillStyle=j.passou?cor.ouro:cor.d; x.fillText(corta(n.join(" · "),colE-252),P+252,cy+52);
+      x.font=F.mono(quad?13:15); x.fillStyle=j.passou?cor.ouro:cor.d; x.fillText(corta(n.join(" · "),colE-252),P+252,cy+(quad?37:52));
     }
     y+=hJ;
   });
@@ -1724,14 +1727,14 @@ async function imagemCampanha(sim){
   jogs.forEach((p,i)=>{
     const ey=topo+i*hE;
     x.strokeStyle=cor.borda; x.lineWidth=1; x.beginPath(); x.moveTo(colD,ey+.5); x.lineTo(W-P,ey+.5); x.stroke();
-    x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText(POS[p.pos],colD,ey+34);
-    x.font=F.body(600,24); x.fillStyle=p.r>=LENDA?cor.ouro:cor.prata; x.fillText(corta(p.name,W-P-colD-56),colD+56,ey+34);
-    x.font=F.mono(15); x.fillStyle=cor.nevoa; x.fillText(corta(`${p.club} ${String(p.y).slice(2)}`,W-P-colD-56),colD+56,ey+60);
+    x.font=F.mono(17); x.fillStyle=cor.nevoa; x.fillText(POS[p.pos],colD,ey+(quad?25:34));
+    x.font=F.body(600,quad?22:24); x.fillStyle=p.r>=LENDA?cor.ouro:cor.prata; x.fillText(corta(p.name,W-P-colD-56),colD+56,ey+(quad?25:34));
+    x.font=F.mono(quad?14:15); x.fillStyle=cor.nevoa; x.fillText(corta(`${p.club} ${String(p.y).slice(2)}`,W-P-colD-56),colD+56,ey+(quad?45:60));
   });
   // rodapé
-  y=topo+altura+14;
-  x.fillStyle=cor.ouro; x.fillRect(P,y,CW,2); y+=42;
-  x.font=F.mono(22); x.fillStyle=cor.prata; x.textAlign="center"; x.fillText(`Monte o seu time: ${SITE}`,W/2,y); x.textAlign="left";
+  y=topo+altura+(quad?8:14);
+  x.fillStyle=cor.ouro; x.fillRect(P,y,CW,2); y+=quad?34:42;
+  x.font=F.mono(quad?21:22); x.fillStyle=cor.prata; x.textAlign="center"; x.fillText(`Monte o seu time: ${SITE}`,W/2,y); x.textAlign="left";
   return c;
 }
 async function abrirCompartilhar(sim){
@@ -1787,12 +1790,12 @@ novoJogo();
   const E=col("colE"),C=col("colC"),D=col("colD");
   const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
   const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
-  const tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");
+  const tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");
   let atual=null;
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
-    if(mq.matches){E.append(marca,sor,ft);D.append(aj,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));$("btnAleatorio").parentElement.after(controles);}
-    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));infoModo.remove();$("base").before($("regraModo"));esc.append(controles);}
+    if(mq.matches){E.append(marca,sor,ft);D.append(aj,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));$("btnAleatorio").parentElement.after(controles);tituloSim.after(barra);tituloSim.append($("btnPular"));}
+    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));infoModo.remove();$("base").before($("regraModo"));esc.append(controles);tituloSim.append(barra);barra.append($("btnPular"));}
   }
   mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
 })();
