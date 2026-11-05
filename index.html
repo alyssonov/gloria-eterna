@@ -540,8 +540,6 @@ select option{background:var(--arquibancada);color:var(--prata)}
 .opcoes-sub .jog .nota{font-size:18px}
 .opcoes-sub .jog .pos{font-size:10.5px;min-width:36px;padding:2px 5px}
 .gols-lista .sub-jogo{color:var(--ouro)}
-.cruz{display:inline-grid;place-items:center;width:1.05em;height:1.05em;margin-right:.3em;border-radius:3px;background:var(--cartao);color:#fff;font-family:var(--body);font-style:normal;font-weight:700;font-size:.9em;line-height:1;vertical-align:.08em}
-#t-sub .cruz{margin-inline:.05em .15em}
 /* Partida: placar no centro e os lances de cada time do lado dele */
 .jogo,.colD .jogo{grid-template-columns:minmax(0,1fr)}
 .jogo .fase{grid-row:auto;text-align:center}
@@ -596,8 +594,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
   /* Sorteio com o mesmo tamanho de Escalação */
   #painelSorteio .titulo-painel h2{font-size:28px}
   /* Coluna do meio antes da campanha: como está ficando o time, no formato da lista do sorteio */
-  #meuTime{flex:none;padding:10px 14px}
-  #meuTime .elenco{grid-template-rows:repeat(6,minmax(40px,auto))}
+  #meuTime{flex:0 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent;padding:10px 14px}
+  #meuTime .elenco{grid-auto-flow:row;grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:minmax(36px,auto)}
   #meuTime .cab{contain:none}
   #meuTime .sorteado-topo{gap:10px;flex-wrap:nowrap;align-items:center;min-width:0}
   #meuTime .clube{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -614,7 +612,7 @@ select option{background:var(--arquibancada);color:var(--prata)}
 .jog.estatico:hover{border-color:var(--borda)}
 .jog.vazia{opacity:.5}
 .jog.vazia .n{font-weight:500;color:var(--nevoa)}
-/* Celular: batedor de pênalti, um jogador por linha */
+/* Batedor de pênalti: um jogador por linha */
 .batedores.linhas{grid-template-columns:minmax(0,1fr)}
 .bat.linha{flex-direction:row;align-items:center;gap:10px;padding:9px 12px}
 .bat.linha .n{flex:1;min-width:0}
@@ -1076,7 +1074,7 @@ function desenhaMeuTime(){
   const lista=S.slots.map(s=>({s,p:s.player})).sort((a,b)=>ORDEM[a.s.pos]-ORDEM[b.s.pos]||(escondido()?0:(b.p?b.p.r:0)-(a.p?a.p.r:0)));
   box.innerHTML=`<div class="sorteado"><div class="elenco"><div class="cab"><div class="sorteado-topo"><div class="ano">${S.picks}/11</div><div class="clube">${esc($("nomeTime").value.trim()||"Seu time")}</div></div></div>${lista.map(({s,p})=>p
     ?`<div class="jog estatico"><span class="pos pos-${s.pos}">${POS[s.pos]}</span><span class="n" title="${esc(p.name)}">${esc(nomeCurto(p.name))}</span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></div>`
-    :`<div class="jog estatico vazia"><span class="pos pos-${s.pos}">${POS[s.pos]}</span><span class="n">Vaga livre</span><span class="nota"></span></div>`).join("")}</div></div>`;
+    :`<div class="jog estatico vazia"><span class="pos pos-${s.pos}">${POS[s.pos]}</span><span class="n"></span><span class="nota"></span></div>`).join("")}</div></div>`;
 }
 
 // ---------- Simulação ----------
@@ -1425,7 +1423,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
   return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase} · ${local}<br>${estado}</div>
   <div class="placar"><span>${esc(inv?j.adv.nome:me.nome)}</span><span class="gols">${inv?gb:ga} × ${inv?ga:gb}</span><span>${esc(inv?me.nome:j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
-  <div class="gols-lista">${htmlLances(gs,evs,vivo,inv,(j.subs||[]).map(x=>`<span class="sub-jogo">${esc(x.entra.name)} no lugar de ${esc(x.sai.name)} (${x.motivo})</span>`).join(""),j.lesao?`<span class="sub-jogo"><i class="cruz" aria-label="lesionado">+</i>${esc(j.lesao.quem.name)} se lesionou ${j.lesao.local}</span>`:"")}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
+  <div class="gols-lista">${htmlLances(gs,evs,vivo,inv,(j.subs||[]).map(x=>`<span class="sub-jogo">${esc(x.entra.name)} no lugar de ${esc(x.sai.name)} (${x.motivo})</span>`).join(""),j.lesao?`<span class="sub-jogo">${esc(j.lesao.quem.name)} se lesionou ${j.lesao.local}</span>`:"")}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
 function htmlLances(gs,evs,vivo,inv,antes,depois){
   const it=[...gs.map(g=>({m:g.m,meu:g.meu,h:`<span class="${g.meu?"meu":""}">${g.m}' ${esc(g.quem)}${g.pen?" (P)":""}</span>`})),
@@ -1445,11 +1443,10 @@ function htmlAviso(j,me,gs,evs,min){
   return `<div class="aviso ${bom?"bom":"ruim"}">${rec.m}' ${txt}</div>`;
 }
 function htmlEscolha(p,me){
-  const pc=matchMedia("(min-width:1000px) and (min-height:560px)").matches, lista=p.opcoes.map((x,i)=>({x,i}));
-  // Celular: ordem da escalação, como na lista do sorteio. Computador: quem tem mais chance primeiro.
-  if(!pc)lista.sort((a,b)=>ORDEM[a.x.pos]-ORDEM[b.x.pos]||me.players.indexOf(a.x)-me.players.indexOf(b.x));
+  // Ordem da escalação, como na lista do sorteio.
+  const lista=p.opcoes.map((x,i)=>({x,i})).sort((a,b)=>ORDEM[a.x.pos]-ORDEM[b.x.pos]||me.players.indexOf(a.x)-me.players.indexOf(b.x));
   return `<div class="disputa escolha"><div class="narra prep">Pênalti para ${esc(me.nome)} aos ${p.m}'! Quem vai bater?</div>
-  <div class="batedores${pc?"":" linhas"}">${lista.map(({x,i})=>{const ch=Math.round(chancePen(notaPen(x),p.gk)*100);return pc?`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>Chance de gol: ${ch}%</small></button>`:`<button class="bat linha" data-bat="${i}"><span class="pos pos-${x.pos}">${POS[x.pos]}</span><span class="n">${esc(x.name)}</span><small>${ch}%</small></button>`;}).join("")}</div></div>`;
+  <div class="batedores linhas">${lista.map(({x,i})=>{const ch=Math.round(chancePen(notaPen(x),p.gk)*100);return `<button class="bat linha" data-bat="${i}"><span class="pos pos-${x.pos}">${POS[x.pos]}</span><span class="n">${esc(x.name)}</span><small>${ch}%</small></button>`;}).join("")}</div></div>`;
 }
 // Goleiro e bola no campinho. Sem c, fica a cena parada; com c, as variáveis levam cada um até o lance.
 function cenaPen(p,c,batida){
@@ -1646,9 +1643,9 @@ function abrirRetorno(a){
   $("modalSub").hidden=false;box.querySelector("button").focus();
 }
 function abrirSub(x){
-  const sai=x.sai, ops=S.sim.opcoes(sai), box=$("opcoesSub"), cruz=`<i class="cruz" aria-label="lesionado">+</i>`;
+  const sai=x.sai, ops=S.sim.opcoes(sai), box=$("opcoesSub");
   const tempo=x.jogos===Infinity?"toda a campanha":x.jogos===1?"1 jogo":`${x.jogos} jogos`;
-  $("t-sub").innerHTML=x.tipo==="lesao"?`${esc(sai.name)} ${cruz} se lesionou ${x.local} e ficará fora por ${tempo}. Escolha um jogador para substituí-lo`:`Escolha um jogador para substituir ${esc(sai.name)} no próximo jogo`;
+  $("t-sub").innerHTML=x.tipo==="lesao"?`${esc(sai.name)} se lesionou ${x.local} e ficará fora por ${tempo}. Escolha um jogador para substituí-lo`:`Escolha um jogador para substituir ${esc(sai.name)} no próximo jogo`;
   box.innerHTML=ops.map((p,i)=>`<button class="jog" data-sub="${i}"><span class="pos pos-${p.pos}">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${esc(p.club)} ${p.y}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.r}</span></button>`).join("");
   box.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{S.sim.escolhas.set(sai.name,ops[+b.dataset.sub]);$("modalSub").hidden=true;pedirSubstituto();});
   $("modalSub").hidden=false;box.querySelector("button").focus();
