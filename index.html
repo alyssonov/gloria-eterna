@@ -973,7 +973,7 @@ function render(){
   $("btnAleatorio").textContent=S.aleatorio?"Trocar time aleatório":"Montar time aleatório";$("btnAleatorio").disabled=S.anim||S.campanha||(S.picks>0&&!S.aleatorio)||!$("nomeTime").value.trim();
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
-  $("trocas").textContent=S.presidente?"Modo presidente":S.alm?"Modo técnico":"Modo torcedor";
+  $("trocas").textContent=S.presidente?"modo presidente":S.alm?"modo técnico":"modo torcedor";
   $("saldo").hidden=!S.presidente;$("saldo").textContent=reais(S.din);$("valorDisp").hidden=!S.presidente||!S.current;$("saldoCel").textContent=reais(S.din);
   // sorteado
   const box=$("sorteado");
