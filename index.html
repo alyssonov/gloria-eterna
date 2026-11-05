@@ -529,6 +529,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #sorteado:not(:empty)~#valorDisp:not([hidden]){margin-top:12px}
   #sorteado:not(:empty)~#valorDisp:not([hidden])+#btnTrocar{margin-top:var(--entre-botoes)}
 }
+.tabela-wrap th,.tabela-wrap td{text-align:center}
+.tabela-wrap th:nth-child(2),.tabela-wrap td:nth-child(2){text-align:left}
 </style>
 </head>
 <body>
@@ -1113,6 +1115,20 @@ function simular(){
     if(!r.pens.length)fechaJogo();
     return passo;
   };
+  // O rival da final não passa pelo seu grupo: 6 jogos de grupo só para comparar as campanhas e decidir o lado no placar.
+  const campanhaRival=o=>{
+    const r2=mulberry32((seedSim^0x9E3779B9)>>>0), c={pts:0,sg:0,gp:0};
+    [[.6,1],[.3,.7],[0,.4]].forEach(([lo,hi])=>{
+      const op=pool.slice(Math.floor(lo*pool.length),Math.ceil(hi*pool.length)).filter(t=>t.nome!==o.nome), x=op[Math.floor(r2()*op.length)];
+      const y={...x,att:x.att+AJUSTE.grupos,def:x.def+AJUSTE.grupos};
+      [[o,y],[y,o]].forEach(([A,B])=>{
+        const r=jogar(A,B,r2,1,false); fechar(r,r2);
+        const f=placar(r), meus=A===o?f.a:f.b, deles=A===o?f.b:f.a;
+        c.gp+=meus; c.sg+=meus-deles; c.pts+=meus>deles?3:meus===deles?1:0;
+      });
+    });
+    return c;
+  };
   function* campanha(){
     const grupo=[me,adv(.6,1,"grupos"),adv(.3,.7,"grupos"),adv(0,.4,"grupos")];
     const tab=new Map(grupo.map(t=>[t,{t,j:0,v:0,e:0,d:0,gp:0,gc:0}]));
@@ -1163,7 +1179,9 @@ function simular(){
     }
     const o=adv(.7,1,"Final");
     const rF=jogar(me,o,rng,0,true);
-    const fin=montar(rF,{fase:"Final · jogo único",local:"neutro",adv:o,final:true},p=>{
+    const meuGrupo=ordenar().find(x=>x.t.eu), rival=campanhaRival(o);
+    const rivalMelhor=rival.pts-meuGrupo.pts||rival.sg-meuGrupo.sg||rival.gp-meuGrupo.gp;
+    const fin=montar(rF,{fase:"Final · jogo único",local:"neutro",adv:o,final:true,advEsquerda:rivalMelhor>0},p=>{
       const j=p.jogo; j.passou=j.ga>j.gb||!!(j.pen&&j.pen[0]>j.pen[1]); p.ultimo=true;
     },p=>p.jogo.ga===p.jogo.gb?criaDisputa(me,o,rng,expulsos(rF,"a"),expulsos(rF,"b")):null);
     yield fin;
@@ -1180,6 +1198,8 @@ function simular(){
   return sim;
 }
 
+// Fora de casa, o seu time fica à direita do placar. Na final, fica à esquerda quem fez a melhor fase de grupos.
+const advEsquerda=j=>j.local==="fora"||!!j.advEsquerda;
 function resJogo(j){return j.ga>j.gb?"v":j.ga<j.gb?"d":"e";}
 // min definido = jogo em andamento até aquele minuto
 // disp = disputa de pênaltis em andamento: {vez: cobrança da vez, miolo: conteúdo abaixo do placar da disputa}
@@ -1194,18 +1214,19 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   if(vivo)estado=`<span class="relogio">${min>90&&!j.prorr?"90'":min+"'"}${min>90&&j.prorr?" prorrogação":""}</span>`;
   else if(penVivo)estado=`<span class="relogio">Pênaltis</span>`;
   else{const r=resJogo(j);estado=`<span class="res ${r}">${{v:"Vitória",e:"Empate",d:"Derrota"}[r]}</span>`;}
+  const inv=advEsquerda(j), par=(a,b)=>inv?`${b}–${a}`:`${a}–${b}`;
   const notas=[];
   if(!vivo){
-    if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
+    if(j.agg)notas.push(`agregado ${par(j.agg[0],j.agg[1])}`);
     if(j.prorr)notas.push("prorrogação");
     if(!penVivo){
-      if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
+      if(j.pen)notas.push(`pênaltis ${par(j.pen[0],j.pen[1])}`);
       if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
     }
   }
   const pen=!vivo&&(j.pen||j.disputa)?htmlPen(j,me,penVivo?disp.vez:null,penVivo?disp.miolo:null):"";
   return `<div class="jogo${novo?"":" fixo"}${vivo||penVivo?" vivo":""}" id="${id}"><div class="fase">${j.fase} · ${local}<br>${estado}</div>
-  <div class="placar"><span>${esc(me.nome)}</span><span class="gols">${ga} × ${gb}</span><span>${esc(j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
+  <div class="placar"><span>${esc(inv?j.adv.nome:me.nome)}</span><span class="gols">${inv?gb:ga} × ${inv?ga:gb}</span><span>${esc(inv?me.nome:j.adv.nome)}</span>${notas.length?`<span class="pen">${notas.join(" · ")}</span>`:""}</div>
   <div class="gols-lista">${htmlLances(gs,evs,vivo)}</div>${vivo&&!extra?htmlAviso(j,me,gs,evs,min):""}${extra||""}${pen}</div>`;
 }
 function htmlLances(gs,evs,vivo){
@@ -1263,7 +1284,7 @@ function htmlPen(j,me,vez,miolo){
   let narra=miolo;
   if(!miolo){const ganhou=j.pen[0]>j.pen[1], u=vis[vis.length-1];
     narra=`<div class="narra ${ganhou?"gol":"erro"}">${u.gol?`GOL de ${esc(u.quem)}!`:`${esc(u.quem)} perdeu!`} ${esc(ganhou?me.nome:j.adv.nome)} vence nos pênaltis por ${Math.max(...j.pen)} a ${Math.min(...j.pen)}.</div>`;}
-  return `<div class="disputa">${linha(true)}${linha(false)}${narra}</div>`;
+  return `<div class="disputa">${linha(!advEsquerda(j))}${linha(advEsquerda(j))}${narra}</div>`;
 }
 function htmlTabela(t){
   return `<p class="rotulo">Fase de grupos</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
