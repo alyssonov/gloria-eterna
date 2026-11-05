@@ -1553,7 +1553,7 @@ function pedirSubstituto(){
 function abrirRetorno(a){
   const box=$("opcoesSub"), cartao=(p,txt,v)=>`<button class="jog" data-volta="${v}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${txt}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.base}</span></button>`;
   $("t-sub").innerHTML=`${esc(a.sai.name)} voltou de ${a.motivo==="lesionado"?"lesão":"suspensão"}. Deseja <span style="white-space:nowrap">colocá-lo</span> de volta no time titular?`;
-  box.innerHTML=cartao(a.sai,"Sim, volta a ser titular",1)+cartao(a.entra,"Não, continua como titular",0);
+  box.innerHTML=cartao(a.sai,"Sim, volta a ser titular",1)+cartao(a.entra,"Não, manter substituto",0);
   box.querySelectorAll("[data-volta]").forEach(b=>b.onclick=()=>{S.sim.decisoes.set(a.sai.name,b.dataset.volta==="1");$("modalSub").hidden=true;pedirSubstituto();});
   $("modalSub").hidden=false;box.querySelector("button").focus();
 }
