@@ -395,6 +395,16 @@ footer{color:var(--nevoa);font-size:12.5px}
 }
 </style>
 <style id="ajustesCelular">
+/* Seta dos seletores um pouco para dentro */
+select{appearance:none;-webkit-appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23f6f4ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:10px 6px}
+select option{background:var(--arquibancada);color:var(--prata)}
+/* Notas dos jogadores na mesma fonte dos anos das plaquinhas */
+.nota,.vaga.cheia .bola{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+.jog .nota{font-size:16px;line-height:1}
+.vaga.cheia .bola{font-size:19px}
+.cab{grid-column:1/-1;display:flex;flex-direction:column;gap:10px}
+.clube-pais{min-width:0}
+.clube{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* O iPhone dá zoom ao tocar em campos com letra menor que 16px */
 @media (max-width:999px),(pointer:coarse){input,select,textarea{font-size:16px!important}}
 .aviso-nome{margin:0;font-family:var(--mono);font-size:13px;color:var(--nevoa)}
@@ -433,7 +443,12 @@ footer{color:var(--nevoa);font-size:12.5px}
   .colE{overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent}
   #painelSorteio{flex:1 0 auto}
   #sorteado,.sorteado{flex:1 0 auto}
-  .elenco{flex:1 0 auto;grid-auto-rows:minmax(20px,1fr)}
+  .elenco{flex:1 0 auto;grid-auto-flow:column;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(6,minmax(24px,1fr));grid-auto-rows:auto}
+  .cab{grid-column:auto;min-width:0;min-height:0;justify-content:center;gap:2px;overflow:hidden}
+  .colC .acoes .campo select{padding:6px 26px 6px 8px;background-position:right 9px center}
+  .titulo-grupo{min-height:0}
+  .saldo{padding:0 7px;font-size:13px;line-height:1.35}
+  .jog .preco{line-height:1.3;font-size:11px}
   .marca,footer{flex:none}
   .aviso-nome{font-size:12px}
   #forca{grid-column:2;grid-template-columns:minmax(0,1fr);gap:4px}
@@ -441,9 +456,9 @@ footer{color:var(--nevoa);font-size:12.5px}
   .medidor b{font-size:17px}
   .regra-modo{grid-column:1/-1;font-size:13.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .colC .painel{grid-template-rows:auto auto auto auto auto 1fr}
-  .wrap{grid-template-columns:minmax(0,1fr) minmax(0,1.8fr) minmax(0,.85fr)}
-  .colC .painel{grid-template-columns:auto minmax(120px,1fr)}
-  .gramado{grid-row:3/-1;justify-self:start;width:min(calc(100cqw - 132px),calc((100cqh - 62px)*68/90))}
+  .colC .painel{grid-template-columns:auto minmax(126px,1fr)}
+  .medidor{column-gap:4px}
+  .gramado{--alt:calc(100cqh - 62px);--larg:min(calc(100cqw - 138px),calc(var(--alt)*.78));grid-row:3/-1;justify-self:start;aspect-ratio:auto;width:var(--larg);height:min(var(--alt),calc(var(--larg)/.62))}
   .m-rot{font-size:11px}
   /* Botões em pares do mesmo tamanho */
   #painelSorteio .acoes{align-items:stretch}
@@ -452,12 +467,18 @@ footer{color:var(--nevoa);font-size:12.5px}
   .colC .acoes #btnSimular,.colC .acoes #btnRecomecar{height:44px;padding:4px 6px;font-size:15px;line-height:1.05}
 }
 @media (min-width:1000px) and (min-height:560px) and (max-height:1000px){
+  .sorteado-topo{gap:6px}
+  .sorteado .ano{font-size:24px}
+  .sorteado .clube{font-size:15px}
+  .sorteado .pais{font-size:10px;line-height:1.1}
   .marca p{font-size:12px;line-height:1.3}
   footer{font-size:10.5px;line-height:1.2}
   footer .redes{margin-top:4px}
 }
 @media (min-width:1000px) and (min-height:560px) and (max-height:760px){
-  .gramado{width:min(calc(100cqw - 132px),calc((100cqh - 50px)*68/90))}
+  .gramado{--alt:calc(100cqh - 50px)}
+  .sorteado .ano{font-size:22px}
+  .sorteado .pais{display:none}
 }
 @media (min-width:1000px) and (min-height:560px) and (max-height:800px){
   .colE{gap:7px}
@@ -482,8 +503,16 @@ footer{color:var(--nevoa);font-size:12.5px}
 @media (max-width:999px) and (max-height:500px){#forca{grid-template-columns:repeat(4,minmax(0,1fr))}.time-completo .gramado{width:min(100%,max(170px,calc((100vh - 135px)*68/90)));width:min(100%,max(170px,calc((100dvh - 135px)*68/90)))}.time-completo .vaga{width:48px;gap:1px}.time-completo .vaga .origem{display:none}.time-completo .vaga .nome{max-width:48px;font-size:9px;line-height:1.05}.time-completo .bola{width:26px;height:26px;font-size:12px}}
 /* Computador com janela estreita: Sortear e Trocar um embaixo do outro, com o texto inteiro */
 @media (min-width:1000px) and (max-width:1150px) and (min-height:560px){#painelSorteio .acoes #btnRolar,#painelSorteio .acoes #btnTrocar{flex:1 1 100%;height:40px}}
-/* Coluna do sorteio mais estreita: anos um pouco menores, com folga dentro da plaquinha */
-@media (min-width:1000px) and (max-width:1450px) and (min-height:560px){#painelSorteio{--ano:10px}}
+@media (min-width:1000px) and (max-width:1320px) and (min-height:560px){.sorteado .clube{font-size:13.5px}}
+@media (max-width:340px){#trocas{font-size:11.5px}.titulo-grupo{gap:6px}#painelSorteio .titulo-painel h2{font-size:24px}}
+@media (max-width:420px){
+  .ajustes{gap:12px 8px}
+  .ajustes select{padding:8px 24px 8px 8px;background-position:right 8px center}
+}
+@media (max-width:345px){
+  .ajustes{grid-template-columns:auto 1fr}
+  .ajustes .campo:last-child{grid-column:1/-1}
+}
 </style>
 </head>
 <body>
@@ -907,12 +936,11 @@ function render(){
   const lista=c.players.map((p,i)=>({p,i})).sort((a,b)=>ORDEM[a.p.pos]-ORDEM[b.p.pos]||(escondido()?0:b.p.r-a.p.r));
   const algum=c.players.some(elegivel);
   box.innerHTML=`<div class="sorteado">
-    <div class="sorteado-topo"><div class="ano">${c.y}</div><div><div class="clube">${esc(c.t)}</div><div class="pais">${PAISES[c.c]}</div></div></div>
-    ${algum?`<p class="dica">Escolha um jogador e adicione no campo</p>`:`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
-    <div class="elenco">${lista.map(({p,i})=>{const ok=elegivel(p);
+    ${algum?"":`<p class="dica">Nenhum jogador deste elenco cabe nas vagas abertas. <button class="btn" id="btnGratis">Sortear de novo (grátis)</button></p>`}
+    <div class="elenco"><div class="cab"><div class="sorteado-topo"><div class="ano">${c.y}</div><div class="clube-pais"><div class="clube">${esc(c.t)}</div><div class="pais">${PAISES[c.c]}</div></div></div>${algum?`<p class="dica">Escolha um jogador e adicione no campo</p>`:""}</div>${lista.map(({p,i})=>{const ok=elegivel(p);
       const semDinheiro=S.presidente&&!ok&&!S.used.has(p.name)&&alvosSemDinheiro(p,null).length>0, resta=S.slots.filter(s=>!s.player).length-1;
       const motivo=S.used.has(p.name)?"já escalado":semDinheiro?(resta?`guarde dinheiro para ${resta===1?"a outra vaga":`as outras ${resta} vagas`}`:"sem dinheiro"):"";
-      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n">${esc(p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n" title="${esc(p.name)}">${esc(S.presidente&&matchMedia("(min-width:1000px) and (min-height:560px)").matches?nomeCurto(p.name):p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
@@ -1156,7 +1184,7 @@ function htmlJogo(j,me,id,min,novo,disp,extra){
   const notas=[];
   if(!vivo){
     if(j.agg)notas.push(`agregado ${j.agg[0]}–${j.agg[1]}`);
-    if(j.prorr)notas.push("com prorrogação");
+    if(j.prorr)notas.push("prorrogação");
     if(!penVivo){
       if(j.pen)notas.push(`pênaltis ${j.pen[0]}–${j.pen[1]}`);
       if(j.passou!==undefined)notas.push(j.final?(j.passou?"campeão":"vice"):(j.passou?"classificado":"eliminado"));
@@ -1225,7 +1253,7 @@ function htmlPen(j,me,vez,miolo){
   return `<div class="disputa">${linha(true)}${linha(false)}${narra}</div>`;
 }
 function htmlTabela(t){
-  return `<p class="rotulo">Fase de grupos · turno e returno · os dois primeiros avançam</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
+  return `<p class="rotulo">Fase de grupos</p><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${
     t.map((x,i)=>`<tr class="${x.t.eu?"eu":""} ${i<2?"classifica":""}"><td>${i+1}</td><td>${esc(x.t.nome)}</td><td>${x.pts}</td><td>${x.j}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp}</td><td>${x.gc}</td><td>${x.sg>0?"+":""}${x.sg}</td></tr>`).join("")}</tbody></table>`;
 }
 function htmlVeredito(sim){
