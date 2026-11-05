@@ -1583,7 +1583,7 @@ function rodar(){
     desenhaVivo(a);
   },dur/VEL_MIN);
 }
-const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900, ESPERA_DISPUTA=2500;
+const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900;
 const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true}); rolaCelular(document.querySelector(`#${a.id} .disputa`),"center");};
 function pedirPen(){
   const a=S.atual, p=proxPen(a); a.pen=p; a.escolhendo=true; a.batedor=p.meu?null:p.batedor;
@@ -1629,9 +1629,8 @@ function apito(instantaneo){
   }
   if(instantaneo){a.escolhendo=false;a.p.resolver();encerra(a);return;}
   if(j.disputa&&!a.p.resolvido){
-    // Mostra o placar final, com os gols dos acréscimos, antes de abrir a disputa.
-    a.penando=true; a.min=Math.max(a.min,j.prorr?120:VEL_MIN); desenhaVivo(a); controles();
-    S.timerPen=setTimeout(()=>passoDisputa(a),ESPERA_DISPUTA); return;
+    // Mostra o placar final, com os gols dos acréscimos. A disputa só abre quando você apertar o botão.
+    a.esperaDisputa=true; a.min=Math.max(a.min,j.prorr?120:VEL_MIN); desenhaVivo(a); controles(); return;
   }
   encerra(a);
 }
@@ -1656,7 +1655,8 @@ function controles(){
   const a=S.atual, bp=$("btnProximo");
   $("btnPular").disabled=!!(a&&a.fim&&a.p.ultimo);
   bp.disabled=!!(a&&!a.penando&&(a.escolhendo||cobrando(a)));
-  if(a&&a.penando)bp.textContent="Pular pênaltis";
+  if(a&&a.esperaDisputa&&!a.fim)bp.textContent="Disputar penalidades";
+  else if(a&&a.penando)bp.textContent="Pular pênaltis";
   else if(a&&a.escolhendo)bp.textContent=a.batedor?"Escolha o canto":"Escolha o batedor";
   else if(cobrando(a))bp.textContent="Cobrança em andamento";
   else if(a&&!a.fim)bp.textContent="Ir para o apito final";
@@ -1664,6 +1664,7 @@ function controles(){
 }
 function proximo(){
   const a=S.atual;
+  if(a&&a.esperaDisputa&&!a.fim){a.esperaDisputa=false;a.penando=true;passoDisputa(a);return;}
   if(a&&a.penando){apito(true);return;}
   if(a&&(a.escolhendo||cobrando(a)))return;
   if(a&&!a.fim){apito();return;}
