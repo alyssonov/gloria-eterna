@@ -593,6 +593,14 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #painelSorteio .controles #btnSimular{order:3;grid-column:1/-1}
   #painelSorteio .controles #btnRecomecar{order:2}
   #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
+  /* Sorteio com o mesmo tamanho de Escalação */
+  #painelSorteio .titulo-painel h2{font-size:28px}
+  /* Coluna do meio antes da campanha: como está ficando o time, no formato da lista do sorteio */
+  #meuTime{flex:none;padding:10px 14px}
+  #meuTime .elenco{grid-template-rows:repeat(6,minmax(40px,auto))}
+  #meuTime .cab{contain:none}
+  #meuTime .sorteado-topo{gap:10px;flex-wrap:nowrap;align-items:center;min-width:0}
+  #meuTime .clube{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   /* Jogadores do campeão sorteado: nome maior para facilitar a leitura */
   .jog{gap:8px}
   .jog .n{font-size:clamp(13px,.95vw,18.5px);line-height:1.15}
@@ -600,8 +608,17 @@ select option{background:var(--arquibancada);color:var(--prata)}
   .jog .pos{font-size:clamp(9.5px,.72vw,13px);min-width:0;padding:1px 4px}
   .jog .preco{font-size:clamp(10px,.75vw,13px)}
 }
+@media (min-width:1000px) and (min-height:560px) and (max-height:760px){#painelSorteio .titulo-painel h2{font-size:22px}}
 </style>
 <style id="resumoCampanha">
+.jog.estatico:hover{border-color:var(--borda)}
+.jog.vazia{opacity:.5}
+.jog.vazia .n{font-weight:500;color:var(--nevoa)}
+/* Celular: batedor de pênalti, um jogador por linha */
+.batedores.linhas{grid-template-columns:minmax(0,1fr)}
+.bat.linha{flex-direction:row;align-items:center;gap:10px;padding:9px 12px}
+.bat.linha .n{flex:1;min-width:0}
+.bat.linha small{font-size:14px;color:var(--prata)}
 /* Resumo da campanha. Os 13 jogos possíveis ocupam toda a largura; os botões ficam em uma linha, do mesmo tamanho. */
 .campanha{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;container-type:inline-size}
 .campanha span{width:auto;height:auto;aspect-ratio:1;font-size:clamp(9px,3.2cqw,16px)}
@@ -664,6 +681,8 @@ select option{background:var(--arquibancada);color:var(--prata)}
       <p class="valor-disp" id="valorDisp" hidden>Valor disponível <span class="saldo" id="saldoCel"></span></p>
     </section>
   </main>
+
+  <section class="painel" id="meuTime" aria-label="Escalação do seu time"></section>
 
   <section class="painel" id="simulacao" hidden aria-labelledby="t-sim">
     <div class="titulo-painel"><h2 id="t-sim">Copa Libertadores</h2>
@@ -1008,7 +1027,7 @@ function render(){
       g.appendChild(el);
   });
   S.ultimo=-1;
-  $("contador").textContent=S.picks+"/11";
+  $("contador").textContent=S.picks+"/11"; desenhaMeuTime();
   
   const f=forcaExibida(), notaInt=v=>v==null?"–":Math.round(v);
   const mediaDA=f&&f.def!=null&&f.att!=null?Math.round((Math.round(f.def)+Math.round(f.att))/2):null;
@@ -1050,7 +1069,18 @@ function render(){
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
 
+// Coluna do meio do computador, antes da campanha: o time no formato da lista do sorteio.
+function desenhaMeuTime(){
+  const box=$("meuTime"); if(!box)return;
+  box.hidden=S.campanha; if(S.campanha)return;
+  const lista=S.slots.map(s=>({s,p:s.player})).sort((a,b)=>ORDEM[a.s.pos]-ORDEM[b.s.pos]||(escondido()?0:(b.p?b.p.r:0)-(a.p?a.p.r:0)));
+  box.innerHTML=`<div class="sorteado"><div class="elenco"><div class="cab"><div class="sorteado-topo"><div class="ano">${S.picks}/11</div><div class="clube">${esc($("nomeTime").value.trim()||"Seu time")}</div></div></div>${lista.map(({s,p})=>p
+    ?`<div class="jog estatico"><span class="pos pos-${s.pos}">${POS[s.pos]}</span><span class="n" title="${esc(p.name)}">${esc(nomeCurto(p.name))}</span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></div>`
+    :`<div class="jog estatico vazia"><span class="pos pos-${s.pos}">${POS[s.pos]}</span><span class="n">Vaga livre</span><span class="nota"></span></div>`).join("")}</div></div>`;
+}
+
 // ---------- Simulação ----------
+
 function poisson(l,rng){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=rng();}while(p>L);return k-1;}
 // Gols esperados: a diferença de força pesa bastante (divisor 7) e o mando de campo conta.
 function lambda(a,d,mando){return 1.15*Math.exp((a.att-d.def)/AJUSTE.k)*(mando===1?1.18:mando===-1?0.86:1);}
@@ -1415,8 +1445,11 @@ function htmlAviso(j,me,gs,evs,min){
   return `<div class="aviso ${bom?"bom":"ruim"}">${rec.m}' ${txt}</div>`;
 }
 function htmlEscolha(p,me){
+  const pc=matchMedia("(min-width:1000px) and (min-height:560px)").matches, lista=p.opcoes.map((x,i)=>({x,i}));
+  // Celular: ordem da escalação, como na lista do sorteio. Computador: quem tem mais chance primeiro.
+  if(!pc)lista.sort((a,b)=>ORDEM[a.x.pos]-ORDEM[b.x.pos]||me.players.indexOf(a.x)-me.players.indexOf(b.x));
   return `<div class="disputa escolha"><div class="narra prep">Pênalti para ${esc(me.nome)} aos ${p.m}'! Quem vai bater?</div>
-  <div class="batedores">${p.opcoes.map((x,i)=>`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>Chance de gol: ${Math.round(chancePen(notaPen(x),p.gk)*100)}%</small></button>`).join("")}</div></div>`;
+  <div class="batedores${pc?"":" linhas"}">${lista.map(({x,i})=>{const ch=Math.round(chancePen(notaPen(x),p.gk)*100);return pc?`<button class="bat" data-bat="${i}"><span class="n">${esc(x.name)}</span><small>Chance de gol: ${ch}%</small></button>`:`<button class="bat linha" data-bat="${i}"><span class="pos pos-${x.pos}">${POS[x.pos]}</span><span class="n">${esc(x.name)}</span><small>${ch}%</small></button>`;}).join("")}</div></div>`;
 }
 // Goleiro e bola no campinho. Sem c, fica a cena parada; com c, as variáveis levam cada um até o lance.
 function cenaPen(p,c,batida){
@@ -1790,11 +1823,11 @@ novoJogo();
   const E=col("colE"),C=col("colC"),D=col("colD");
   const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
   const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
-  const tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");
+  const meuT=$("meuTime"),tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");
   let atual=null;
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
-    if(mq.matches){E.append(marca,sor,ft);D.append(aj,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));$("btnAleatorio").parentElement.after(controles);tituloSim.after(barra);tituloSim.append($("btnPular"));}
+    if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));$("btnAleatorio").parentElement.after(controles);tituloSim.after(barra);tituloSim.append($("btnPular"));}
     else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));infoModo.remove();$("base").before($("regraModo"));esc.append(controles);tituloSim.append(barra);barra.append($("btnPular"));}
   }
   mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
