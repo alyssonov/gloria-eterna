@@ -615,6 +615,10 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #painelSorteio .botoes .btn.principal{font-size:16px}
   #painelSorteio .botoes .acoes #btnRolar,#painelSorteio .botoes .acoes #btnTrocar,#painelSorteio .botoes .acoes #btnAleatorio{flex:none;height:40px}
   #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
+  /* Saldo do modo Presidente: abaixo de Montar time aleatório, e não ao lado de Sorteio */
+  #saldo{display:none}
+  .botoes .valor-disp{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 5px;font-size:clamp(11px,.82vw,14px);line-height:1.3;text-align:center}
+  .botoes .saldo{padding:0 5px;font-size:inherit}
   /* Imagem de compartilhar maior, sem passar da altura da tela */
   #modal .modal-caixa{max-width:none;width:min(640px,calc(100vh - 170px))}
   #modal img{max-height:none}
@@ -1081,7 +1085,7 @@ function render(){
   $("btnTrocar").disabled=S.anim||cheio||!S.current||S.trocas<=0;
   $("btnTrocar").textContent=S.presidente?"Trocar campeão":`Trocar campeão (${S.trocas})`;
   $("trocas").textContent=S.presidente?"modo presidente":S.alm?"modo técnico":"modo torcedor";
-  $("saldo").hidden=!S.presidente;$("saldo").textContent=reais(S.din);$("valorDisp").hidden=!S.presidente||!S.current;$("saldoCel").textContent=reais(S.din);
+  $("saldo").hidden=!S.presidente;$("saldo").textContent=reais(S.din);$("valorDisp").hidden=!S.presidente||(!S.current&&!matchMedia("(min-width:1000px) and (min-height:560px)").matches);$("saldoCel").textContent=reais(S.din);
   // sorteado
   const box=$("sorteado");
   if(S.campanha&&$("meuTime")){box.innerHTML=htmlMeuTime();return;}
@@ -1872,8 +1876,8 @@ novoJogo();
   new ResizeObserver(()=>{if(!mq.matches)return;meuT.style.setProperty("--lista-l",getComputedStyle(mesa).gridTemplateColumns.split(" ")[0]);meuT.style.setProperty("--lista-a",mesa.getBoundingClientRect().height+"px");}).observe(mesa);
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
-    if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));mesa.append(aviso,sorteado,botoes);botoes.append(acoesSor,controles);$("base").after(mesa);tituloSim.after(barra);tituloSim.append($("btnPular"));}
-    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));$("base").before($("regraModo"));infoModo.remove();esc.append(controles);$("base").after(aviso,acoesSor,sorteado);mesa.remove();posTrocar();tituloSim.append(barra);barra.append($("btnPular"));}
+    if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));mesa.append(aviso,sorteado,botoes);botoes.append(acoesSor,controles);acoesSor.append($("valorDisp"));$("base").after(mesa);tituloSim.after(barra);tituloSim.append($("btnPular"));}
+    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));$("base").before($("regraModo"));infoModo.remove();esc.append(controles);$("base").after(aviso,acoesSor,sorteado,$("valorDisp"));mesa.remove();posTrocar();tituloSim.append(barra);barra.append($("btnPular"));}
   }
   mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
 })();
