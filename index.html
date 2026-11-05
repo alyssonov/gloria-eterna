@@ -151,6 +151,8 @@ main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;ali
 .jogo.vivo{border-color:var(--ouro)}
 .jog:disabled{opacity:.38;cursor:not-allowed}
 .pos{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:2px 5px;min-width:36px;text-align:center;border-radius:3px;background:var(--arquibancada);color:var(--nevoa)}
+/* Cor da sigla por posição */
+.pos-G{color:#ff9a3c}.pos-E,.pos-R{color:#3fd4c4}.pos-Z{color:#62a8ff}.pos-M{color:#5fd38d}.pos-A{color:#ff6b60}
 .jog .n{font-weight:600;line-height:1.2}
 .jog .n small{display:block;font-weight:400;font-size:11px;color:var(--nevoa)}
 .nota{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
@@ -593,7 +595,7 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
   /* Jogadores do campeão sorteado: nome maior para facilitar a leitura */
   .jog{gap:8px}
-  .jog .n{font-size:clamp(13px,1.05vw,20px);line-height:1.15}
+  .jog .n{font-size:clamp(13px,.95vw,18.5px);line-height:1.15}
   .jog .nota{font-size:clamp(13px,1vw,19px)}
   .jog .pos{font-size:clamp(9.5px,.72vw,13px);min-width:0;padding:1px 4px}
   .jog .preco{font-size:clamp(10px,.75vw,13px)}
@@ -1041,7 +1043,7 @@ function render(){
     <div class="elenco"><div class="cab"><div class="sorteado-topo"><div class="ano">${c.y}</div><div class="clube-pais"><div class="clube">${esc(c.t)}</div><div class="pais">${PAISES[c.c]}</div></div></div>${algum?`<p class="dica">Escolha um jogador e adicione no campo</p>`:""}</div>${lista.map(({p,i})=>{const ok=elegivel(p);
       const semDinheiro=S.presidente&&!ok&&!S.used.has(p.name)&&alvosSemDinheiro(p,null).length>0, resta=S.slots.filter(s=>!s.player).length-1;
       const motivo=S.used.has(p.name)?"já escalado":semDinheiro?(resta?`guarde dinheiro para ${resta===1?"a outra vaga":`as outras ${resta} vagas`}`:"sem dinheiro"):"";
-      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos">${posTxt(p)}</span><span class="n" title="${esc(p.name)}">${esc(matchMedia("(min-width:1000px) and (min-height:560px)").matches?nomeCurto(p.name):p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
+      return `<button class="jog${S.sel===i?" sel":""}" data-i="${i}" ${ok?"":"disabled"}><span class="pos pos-${p.pos}">${posTxt(p)}</span><span class="n" title="${esc(p.name)}">${esc(matchMedia("(min-width:1000px) and (min-height:560px)").matches?nomeCurto(p.name):p.name)}<small>${motivo}</small></span><span class="nota${p.r>=LENDA&&!escondido()?" lenda":""}">${S.presidente?`<small class="preco">${reais(preco(p.r))}</small>`:""}${escondido()?"?":p.r}</span></button>`;}).join("")}</div></div>`;
   box.querySelectorAll(".jog").forEach(bt=>bt.onclick=()=>selecionar(+bt.dataset.i));
   const gr=$("btnGratis"); if(gr)gr.onclick=()=>sortear(false);
 }
@@ -1602,7 +1604,7 @@ function pedirSubstituto(){
   if(x)abrirSub(x);else comecarJogo();
 }
 function abrirRetorno(a){
-  const box=$("opcoesSub"), cartao=(p,txt,v)=>`<button class="jog" data-volta="${v}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${txt}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.base}</span></button>`;
+  const box=$("opcoesSub"), cartao=(p,txt,v)=>`<button class="jog" data-volta="${v}"><span class="pos pos-${p.pos}">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${txt}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.base}</span></button>`;
   $("t-sub").innerHTML=`${esc(a.sai.name)} voltou de ${a.motivo==="lesionado"?"lesão":"suspensão"}. Deseja <span style="white-space:nowrap">colocá-lo</span> de volta no time titular?`;
   box.innerHTML=cartao(a.sai,"Sim, volta a ser titular",1)+cartao(a.entra,"Não, manter substituto",0);
   box.querySelectorAll("[data-volta]").forEach(b=>b.onclick=()=>{S.sim.decisoes.set(a.sai.name,b.dataset.volta==="1");$("modalSub").hidden=true;pedirSubstituto();});
@@ -1612,7 +1614,7 @@ function abrirSub(x){
   const sai=x.sai, ops=S.sim.opcoes(sai), box=$("opcoesSub"), cruz=`<i class="cruz" aria-label="lesionado">+</i>`;
   const tempo=x.jogos===Infinity?"toda a campanha":x.jogos===1?"1 jogo":`${x.jogos} jogos`;
   $("t-sub").innerHTML=x.tipo==="lesao"?`${esc(sai.name)} ${cruz} se lesionou ${x.local} e ficará fora por ${tempo}. Escolha um jogador para substituí-lo`:`Escolha um jogador para substituir ${esc(sai.name)} no próximo jogo`;
-  box.innerHTML=ops.map((p,i)=>`<button class="jog" data-sub="${i}"><span class="pos">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${esc(p.club)} ${p.y}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.r}</span></button>`).join("");
+  box.innerHTML=ops.map((p,i)=>`<button class="jog" data-sub="${i}"><span class="pos pos-${p.pos}">${POS[p.pos]}</span><span class="n">${esc(p.name)}<small>${esc(p.club)} ${p.y}</small></span><span class="nota${p.r>=LENDA?" lenda":""}">${p.r}</span></button>`).join("");
   box.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{S.sim.escolhas.set(sai.name,ops[+b.dataset.sub]);$("modalSub").hidden=true;pedirSubstituto();});
   $("modalSub").hidden=false;box.querySelector("button").focus();
 }
