@@ -266,7 +266,7 @@ footer{color:var(--nevoa);font-size:12.5px}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&display=swap">
 <style id="layout3colunas">
-/* Computador em 3 colunas, sem rolar a página. Esquerda: título e sorteio. Centro: ajustes, campo, pênaltis e parabéns. Direita: jogos, a única parte que rola. */
+/* Computador em 3 colunas, sem rolar a página. 1ª: título, sorteio e botões da campanha. 2ª: ajustes e jogos, a parte que rola. 3ª: campo e médias. */
 /* Bola na trave: chega ao poste e volta para o campo */
 @keyframes rebote{from{left:var(--bx);top:var(--by)}to{left:var(--rx);top:80%}}
 .penal.natrave.batida:not(.fixa) .bp{animation:rebote .4s ease-in .45s forwards}
@@ -559,6 +559,47 @@ select option{background:var(--arquibancada);color:var(--prata)}
 @media (min-width:1000px) and (min-height:560px){.cab{contain:size}.sorteado .pais{display:none}}
 @media (min-width:1000px) and (min-height:1001px){.sorteado .clube{font-size:28px}}
 @media (min-width:1400px) and (min-height:560px) and (max-height:760px){.sorteado .clube{font-size:20px}}
+</style>
+<style id="colunas">
+/* 1ª coluna título, sorteio e botões da campanha; 2ª ajustes e jogos; 3ª campo e médias. */
+@media (min-width:1000px) and (min-height:560px){
+  .wrap{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr)}
+  /* 2ª coluna: ajustes fixos em cima e só os jogos rolam */
+  .colD{overflow:hidden;padding:5px;margin:-5px;height:calc(100% + 10px)}
+  #simulacao{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent}
+  #simulacao .titulo-painel{top:0}
+  /* 3ª coluna: campo com as médias embaixo, em uma linha */
+  .colC .painel{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  .colC .titulo-painel{grid-column:1}
+  .gramado{--alt:calc(100cqh - 98px);--larg:min(100cqw,calc(var(--alt)*.78));grid-column:1;grid-row:2;justify-self:center;align-self:start}
+  .colC .forca,#forca{grid-column:1;grid-row:3;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr);display:grid;gap:6px}
+  #forca:empty{display:none}
+  /* Modo e explicação à direita da palavra Sorteio */
+  #painelSorteio .titulo-painel{flex-wrap:nowrap;align-items:flex-start}
+  .titulo-grupo{flex:none}
+  .modo-info{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+  .modo-info .regra-modo{font-size:12.5px;line-height:1.25;white-space:normal;overflow:visible}
+  /* Velocidade, Iniciar campanha e Reiniciar debaixo de Montar time aleatório */
+  #painelSorteio .acoes.controles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);gap:6px;align-items:end}
+  .controles .campo{order:1;min-width:0;gap:2px}
+  .controles .campo label{font-size:10px}
+  .controles .campo select{width:100%;height:40px;padding:6px 22px 6px 8px;font-size:13px;background-position:right 8px center}
+  #painelSorteio .controles #btnSimular{order:2}
+  #painelSorteio .controles #btnRecomecar{order:3}
+  #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
+}
+</style>
+<style id="resumoCampanha">
+/* Resumo da campanha. Os 13 jogos possíveis ocupam toda a largura; os botões ficam em uma linha, do mesmo tamanho. */
+.campanha{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;container-type:inline-size}
+.campanha span{width:auto;height:auto;aspect-ratio:1;font-size:clamp(9px,3.2cqw,16px)}
+.veredito>.forca{gap:4px 16px}
+.veredito>.forca+.forca{margin-top:-6px}
+.veredito>.acoes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.veredito>.acoes .btn{width:100%;height:100%;min-height:48px;margin:0;padding:8px 6px;font-size:14px;line-height:1.1;white-space:normal;text-align:center}
+.veredito>.acoes .btn.principal{font-size:16px}
+@media (max-width:420px){.veredito>.acoes .btn{font-size:12.5px;padding:6px 4px}.veredito>.acoes .btn.principal{font-size:14px}}
+@media (min-width:1000px) and (max-width:1200px){.veredito>.acoes{gap:5px}.veredito>.acoes .btn{font-size:11.5px;padding:6px 2px}.veredito>.acoes .btn.principal{font-size:13px}}
 </style>
 </head>
 <body>
@@ -1409,7 +1450,7 @@ function htmlVeredito(sim){
   const gp=js.reduce((s,j)=>s+j.ga,0), gc=js.reduce((s,j)=>s+j.gb,0);
   const art={}; js.forEach(j=>j.gols.filter(g=>g.meu).forEach(g=>art[g.quem]=(art[g.quem]||0)+1));
   const top=Object.entries(art).sort((a,b)=>b[1]-a[1])[0];
-  const campeao=!sim.fimFase; const vitorias=res.filter(r=>r==="v").length;
+  const campeao=!sim.fimFase;
   const perfeita=campeao&&js.every(j=>j.ga>j.gb);
   const invicto=campeao&&!res.includes("d");
   let titulo,texto;
@@ -1420,8 +1461,8 @@ function htmlVeredito(sim){
   const f=sim.me;
   return `<div class="veredito ${campeao?"ouro":""}"><p class="rotulo">Resultado</p><h3>${titulo}</h3><p>${texto}</p>
     <div class="campanha" aria-label="Campanha">${res.map(r=>`<span class="${r}">${r.toUpperCase()}</span>`).join("")}</div>
-    <div class="forca"><span>Vitórias <b>${vitorias}</b></span><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}<span>Defesa <b>${Math.round(f.def)}</b></span><span>Ataque <b>${Math.round(f.att)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}</b></span></div>
-    <div class="acoes"><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnMesmo">${campeao?"Defender título":"Mesmo time, nova Copa"}</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
+    <div class="forca"><span>Gols pró <b>${gp}</b></span><span>Gols contra <b>${gc}</b></span>${top?`<span>Artilheiro <b>${esc(top[0])} (${top[1]})</b></span>`:""}</div><div class="forca"><span>Defesa <b>${Math.round(f.def)}</b></span><span>Ataque <b>${Math.round(f.att)}</b></span><span>Entrosamento <b>${Math.round(f.ent*100)}</b></span></div>
+    <div class="acoes"><button class="btn" id="btnMesmo">${campeao?"Defender título":"Mesmo time, nova Copa"}</button><button class="btn principal" id="btnDenovo">Montar outro time</button><button class="btn" id="btnCompartilhar">Compartilhar resultado</button></div></div>`;
 }
 
 // Cada jogo roda com relógio na velocidade escolhida e para no apito final; o próximo só começa no botão.
@@ -1734,11 +1775,12 @@ novoJogo();
   const E=col("colE"),C=col("colC"),D=col("colD");
   const marca=document.querySelector(".marca"),aj=document.querySelector(".ajustes"),sim=$("simulacao"),ft=document.querySelector("footer"),esc=document.querySelector('section[aria-labelledby="t-esc"]'),sor=$("painelSorteio");
   const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
+  const tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");
   let atual=null;
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
-    if(mq.matches){E.append(marca,sor,ft);C.append(aj,esc);D.append(sim);w.replaceChildren(E,C,D,...modais);esc.querySelector(".titulo-painel").after($("regraModo"));}
-    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);$("base").before($("regraModo"));}
+    if(mq.matches){E.append(marca,sor,ft);D.append(aj,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));$("btnAleatorio").parentElement.after(controles);}
+    else{header.append(marca,aj);main.append(esc,sor);w.replaceChildren(header,main,sim,...modais,ft);tituloSor.append($("trocas"));infoModo.remove();$("base").before($("regraModo"));esc.append(controles);}
   }
   mq.addEventListener("change",arruma);addEventListener("resize",arruma);arruma();
 })();
