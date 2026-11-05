@@ -1107,8 +1107,8 @@ function fechar(r,rng){
   ordena(r);
 }
 
-// Ajuste de força dos adversários por fase (calibrado: ~80% passa do grupo, e cada fase fica um pouco mais difícil).
-const AJUSTE={k:10,grupos:-2.7,Oitavas:-3.6,Quartas:-3.4,Semifinal:-2.5,Final:-2.5};
+// Ajuste de força dos adversários por fase. Calibrado: o botão Time aleatório é campeão em ~3% das Copas e um time bem montado em ~17%; na final o rival joga com a força real.
+const AJUSTE={k:10,grupos:-1.5,Oitavas:-1.5,Quartas:-1,Semifinal:-.5,Final:0};
 const OITAVAS={primeiro:[.3,.7],segundo:[.6,1]};
 // A Copa anda jogo a jogo: sim.avancar() entrega o próximo jogo do seu time (resolvendo o anterior, se ficou pendente).
 // Mini sorteio do suspenso: mesma posição e mesma nota. Se faltar gente, completa com as notas mais próximas, preferindo as menores.
