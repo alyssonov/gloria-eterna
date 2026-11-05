@@ -1030,14 +1030,14 @@ function batedores(t,fora){
 }
 // Disputa cobrança a cobrança, alternada; acaba assim que um lado não consegue mais alcançar o outro.
 function criaDisputa(A,B,rng,foraA,foraB){
-  const la=batedores(A,foraA), lb=batedores(B,foraB);
+  const la=batedores(A,foraA), lb=batedores(B,foraB), primeiroA=rng()<.5;
   const d={cobr:[],a:0,b:0,ka:0,kb:0,atual:null,
     prox(){
       if(d.atual)return d.atual;
       const {a,b,ka,kb}=d;
       if(ka===kb&&ka>=5){if(a!==b)return null;}
       else if(ka<5||kb<5){if(a>b+Math.max(0,5-kb)||b>a+Math.max(0,5-ka))return null;}
-      const ehA=ka<=kb, X=ehA?A:B, Y=ehA?B:A, lista=ehA?la:lb;
+      const ehA=primeiroA?ka<=kb:ka<kb, X=ehA?A:B, Y=ehA?B:A, lista=ehA?la:lb;
       return d.atual={ehA,meu:!!X.eu,time:X.nome,quem:lista[(ehA?ka:kb)%lista.length],gk:Y.gk||80,u:rng(),cb:entre(0,2,rng),cg:entre(0,2,rng)};
     },
     bater(s,cb=s.cb,cg=s.cg){
