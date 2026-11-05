@@ -214,6 +214,7 @@ tr.classifica td:first-child{box-shadow:inset 3px 0 0 var(--vitoria)}
 .disputa .disputa{margin:0;padding:0;border:0}
 .cantos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .bat.canto{align-items:center;text-align:center;padding:12px 4px}
+.cantos.reserva{display:none}
 .penal{position:relative;width:100%;max-width:340px;height:150px;margin:2px auto;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,var(--gramado),var(--gramado2))}
 .penal .trave{position:absolute;left:14%;right:14%;top:8%;height:56%;border:4px solid var(--prata);border-bottom:0;
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 1px,transparent 1px 9px),repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 1px,transparent 1px 9px)}
@@ -340,9 +341,15 @@ footer{color:var(--nevoa);font-size:12.5px}
   .jog .nota{font-size:12px;line-height:1.15}
   .jog .preco{font-size:10px}
   /* Pênalti aparece no centro, sobre o campo */
-  .jogo.vivo>.disputa{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:min(560px,36vw);max-height:92vh;overflow:auto;margin:0;
+  .jogo.vivo>.disputa{position:fixed;inset:0;z-index:30;width:min(560px,36vw);height:min(540px,92vh);display:flex;flex-direction:column;gap:8px;overflow:auto;margin:auto;
     padding:18px;background:var(--noite);border:2px solid var(--ouro);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.75)}
-  .jogo.vivo>.disputa .penal{max-width:none;height:230px}
+  .jogo.vivo>.disputa>.disputa{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:8px}
+  .jogo.vivo>.disputa .narra{flex:none;min-height:3em;margin:0}
+  .jogo.vivo>.disputa .penal{flex:1 1 0;min-height:110px;width:100%;max-width:none;height:auto;margin:0}
+  .jogo.vivo>.disputa .cantos.reserva{display:grid;visibility:hidden}
+  .jogo.vivo>.disputa .batedores.linhas{flex:1 1 0;min-height:0;align-content:start;grid-auto-rows:minmax(28px,38px);gap:5px}
+  .jogo.vivo>.disputa .bat.linha{padding:2px 12px;min-height:0}
+  .jogo.vivo>.disputa .escolha:has(.batedores) .narra,.jogo.vivo>.disputa.escolha:has(.batedores) .narra{min-height:0}
 }
 /* Telas médias: uma linha por jogador, porque as regras ocupam o pé da coluna */
 @media (min-width:1000px) and (min-height:560px) and (max-height:1000px){
@@ -606,16 +613,20 @@ select option{background:var(--arquibancada);color:var(--prata)}
   #painelSorteio .botoes .btn.principal{font-size:16px}
   #painelSorteio .botoes .acoes #btnRolar,#painelSorteio .botoes .acoes #btnTrocar,#painelSorteio .botoes .acoes #btnAleatorio{flex:none;height:40px}
   #painelSorteio .controles .btn,#painelSorteio .controles .btn.principal{height:40px;width:100%;margin:0;padding:3px 6px;font-size:14px;line-height:1.05;white-space:normal}
+  /* Imagem de compartilhar maior, sem passar da altura da tela */
+  #modal .modal-caixa{max-width:none;width:min(640px,calc(100vh - 170px))}
+  #modal img{max-height:none}
   /* Sorteio com o mesmo tamanho de Escalação */
   #painelSorteio .titulo-painel h2{font-size:28px}
   /* Coluna do meio antes da campanha: como está ficando o time, no formato da lista do sorteio */
-  #meuTime{flex:0 1 auto;width:min(340px,100%);margin:auto;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--borda) transparent;padding:10px 14px}
-  #meuTime .elenco{grid-auto-flow:row;grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:minmax(30px,auto);gap:4px}
-  #meuTime .cab{contain:none}
-  #meuTime .sorteado-topo{gap:10px;flex-wrap:nowrap;align-items:center;min-width:0}
-  #meuTime .clube{min-width:0;font-size:20px;overflow-wrap:anywhere}
-  #meuTime .ano{font-size:26px}
-  #meuTime .jog{padding:2px 8px}
+  #meuTime{flex:none;box-sizing:content-box;width:var(--lista-l,300px);height:var(--lista-a,auto);max-width:calc(100% - 28px);margin:auto;overflow:hidden;padding:10px 14px}
+  #meuTime .sorteado{height:100%}
+  #meuTime .elenco{height:100%;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(48px,auto) repeat(11,minmax(28px,1fr));grid-auto-rows:auto;gap:4px 8px}
+  #meuTime .cab{contain:none;align-self:center;overflow:visible}
+  #meuTime .sorteado-topo{gap:8px;flex-wrap:nowrap;align-items:center;min-width:0}
+  #meuTime .clube{min-width:0;font-size:clamp(19px,1.65vw,32px);line-height:1;overflow-wrap:anywhere}
+  #meuTime .ano{font-size:clamp(28px,2.4vw,46px)}
+  #meuTime .jog{min-height:0}
   /* Jogadores do campeão sorteado: nome maior para facilitar a leitura */
   .jog{gap:8px}
   .jog .n{font-size:clamp(13px,.95vw,18.5px);line-height:1.15}
@@ -624,7 +635,7 @@ select option{background:var(--arquibancada);color:var(--prata)}
   .jog .preco{font-size:clamp(10px,.75vw,13px)}
 }
 @media (min-width:1000px) and (min-height:560px) and (max-height:760px){#painelSorteio .titulo-painel h2{font-size:22px}}
-@media (min-width:1000px) and (min-height:560px) and (max-height:800px){.mesa{grid-template-rows:minmax(44px,auto) repeat(11,minmax(25px,1fr));gap:3px 8px}}
+@media (min-width:1000px) and (min-height:560px) and (max-height:800px){.mesa,#meuTime .elenco{grid-template-rows:minmax(44px,auto) repeat(11,minmax(25px,1fr));gap:3px 8px}}
 </style>
 <style id="resumoCampanha">
 .jog.estatico:hover{border-color:var(--borda)}
@@ -632,7 +643,7 @@ select option{background:var(--arquibancada);color:var(--prata)}
 .jog.vazia .n{font-weight:500;color:var(--nevoa)}
 /* Batedor de pênalti: um jogador por linha */
 .batedores.linhas{grid-template-columns:minmax(0,1fr)}
-.bat.linha{flex-direction:row;align-items:center;gap:10px;padding:9px 12px}
+.disputa .bat.linha{flex-direction:row;align-items:center;gap:10px;padding:9px 12px;font-family:var(--body);font-size:15px;font-weight:600}
 .bat.linha .n{flex:1;min-width:0}
 .bat.linha small{font-size:14px;color:var(--prata)}
 /* Resumo da campanha. Os 13 jogos possíveis ocupam toda a largura; os botões ficam em uma linha, do mesmo tamanho. */
@@ -1488,10 +1499,12 @@ function htmlCanto(p,quem,j,me){
   return `<div class="disputa escolha"><div class="narra prep">${titulo}</div>${cenaPen(p)}
   <div class="cantos">${CANTOS.map((t,i)=>`<button class="bat canto" data-canto="${i}">${t}</button>`).join("")}</div></div>`;
 }
+// Lugar reservado dos botões de canto, para a cena não mudar de tamanho depois da escolha no computador.
+const cantosVazios=()=>`<div class="cantos reserva" aria-hidden="true">${CANTOS.map(t=>`<button class="bat canto" disabled tabindex="-1">${t}</button>`).join("")}</div>`;
 function htmlCobranca(p){
   const c=p.cobrado, mesmo=c.cb===c.cg;
   const frase=c.gol?(c.cb===1?"No meio do gol, com categoria.":mesmo?"O goleiro foi no canto, mas não alcançou.":"Deslocou o goleiro."):(mesmo?"O goleiro defendeu!":c.cb===1?"Por cima do gol!":"Na trave!");
-  return `<div class="disputa"><div class="narra ${c.gol===p.meu?"gol":"erro"}">${p.m?`${p.m}' `:""}${c.gol?`GOL de ${esc(c.quem)}!`:`${esc(c.quem)} perdeu!`} ${frase}</div>${cenaPen(p,c,true)}</div>`;
+  return `<div class="disputa"><div class="narra ${c.gol===p.meu?"gol":"erro"}">${p.m?`${p.m}' `:""}${c.gol?`GOL de ${esc(c.quem)}!`:`${esc(c.quem)} perdeu!`} ${frase}</div>${cenaPen(p,c,true)}${cantosVazios()}</div>`;
 }
 function htmlPen(j,me,vez,miolo){
   const vis=(j.pen||j.disputa).cobr;
@@ -1567,7 +1580,7 @@ function rodar(){
     desenhaVivo(a);
   },dur/VEL_MIN);
 }
-const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900;
+const SUSPENSE_CORRIDA=1300, SUSPENSE_DISPUTA=800, SUSPENSE_VOO=900, ESPERA_DISPUTA=2500;
 const focaBat=a=>{const b=document.querySelector(`#${a.id} .bat`); if(b)b.focus({preventScroll:true}); rolaCelular(document.querySelector(`#${a.id} .disputa`),"center");};
 function pedirPen(){
   const a=S.atual, p=proxPen(a); a.pen=p; a.escolhendo=true; a.batedor=p.meu?null:p.batedor;
@@ -1586,7 +1599,7 @@ function escolherCanto(i){
   a.escolhendo=false; a.cob={p,q,cb,cg};
   const desenha=x=>a.penando?desenhaDisputa(a,x,a.cob&&p):desenhaVivo(a,x);
   // O gol só entra na lista no fim da animação, para o placar não entregar a cobrança antes da hora.
-  desenha(`<div class="disputa"><div class="narra prep">${esc(q.name)} corre para a bola…</div>${cenaPen(p,resultadoPen(p,q,cb,cg))}</div>`);
+  desenha(`<div class="disputa"><div class="narra prep">${esc(q.name)} corre para a bola…</div>${cenaPen(p,resultadoPen(p,q,cb,cg))}${cantosVazios()}</div>`);
   controles();
   S.timerPen=setTimeout(()=>{
     const cena=document.querySelector(`#${a.id} .penal`); if(cena)cena.classList.add("batida");
@@ -1612,7 +1625,11 @@ function apito(instantaneo){
     if(a.batedor&&a.pen.meu)a.p.cobrar(a.pen,a.batedor);
   }
   if(instantaneo){a.escolhendo=false;a.p.resolver();encerra(a);return;}
-  if(j.disputa&&!a.p.resolvido){a.penando=true;passoDisputa(a);return;}
+  if(j.disputa&&!a.p.resolvido){
+    // Mostra o placar final, com os gols dos acréscimos, antes de abrir a disputa.
+    a.penando=true; a.min=Math.max(a.min,j.prorr?120:VEL_MIN); desenhaVivo(a); controles();
+    S.timerPen=setTimeout(()=>passoDisputa(a),ESPERA_DISPUTA); return;
+  }
   encerra(a);
 }
 function encerra(a){
@@ -1844,6 +1861,8 @@ novoJogo();
   const modais=[$("modalSub"),$("modalCampeao"),$("modal")];
   const aviso=$("avisoNome"),sorteado=$("sorteado"),acoesSor=$("btnRolar").parentElement,mesa=document.createElement("div"),botoes=document.createElement("div"),meuT=$("meuTime"),tituloSim=sim.querySelector(".titulo-painel"),barra=$("barraJogo"),tituloSor=sor.querySelector(".titulo-painel"),controles=esc.querySelector(".acoes"),infoModo=document.createElement("div");infoModo.className="modo-info";controles.classList.add("controles");mesa.className="mesa";botoes.className="botoes";
   let atual=null;
+  // A lista do meio copia as medidas da lista da coluna esquerda.
+  new ResizeObserver(()=>{if(!mq.matches)return;meuT.style.setProperty("--lista-l",getComputedStyle(mesa).gridTemplateColumns.split(" ")[0]);meuT.style.setProperty("--lista-a",mesa.getBoundingClientRect().height+"px");}).observe(mesa);
   function arruma(){
     if(mq.matches===atual)return; atual=mq.matches;
     if(mq.matches){E.append(marca,sor,ft);D.append(aj,meuT,sim);C.append(esc);w.replaceChildren(E,D,C,...modais);render();tituloSor.append(infoModo);infoModo.append($("trocas"),$("regraModo"));mesa.append(aviso,sorteado,botoes);botoes.append(acoesSor,controles);$("base").after(mesa);tituloSim.after(barra);tituloSim.append($("btnPular"));}
